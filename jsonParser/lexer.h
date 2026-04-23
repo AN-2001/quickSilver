@@ -23,7 +23,7 @@ namespace GraphToys {
         private:
             static constexpr size_t MAX_BUFFER_SIZE = 4096;
 
-            BorrowedFd fd;
+            FdView fd;
 
             size_t bufferPos;
             size_t bufferSize;
@@ -39,7 +39,7 @@ namespace GraphToys {
 
         public:
             /* Parser can only be constructed via fd.                         */
-            JsonLexer( BorrowedFd fd ) : fd( fd ) {}
+            JsonLexer( FdView fd ) : fd( fd ) {}
             JsonLexer( const JsonLexer &other ) = delete;
             JsonLexer( JsonLexer &&other ) = delete;
             JsonLexer &operator=( const JsonLexer &other ) = delete;
