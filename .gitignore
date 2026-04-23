@@ -1,0 +1,7 @@
+graphToys
+*.o
+*/*.o
+compile_commands.json
+.cache
+.cache/
+.cache/*
