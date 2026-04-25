@@ -15,7 +15,7 @@
 #include <string>
 #include "token.h"
 #include <variant>
-#include "../utils/uniqueFd.h"
+#include "uniqueFd.h"
 
 namespace GraphToys {
 
@@ -23,7 +23,7 @@ namespace GraphToys {
         private:
             static constexpr size_t MAX_BUFFER_SIZE = 4096;
 
-            FdView fd;
+            int fd;
 
             size_t bufferPos;
             size_t bufferSize;
@@ -39,7 +39,7 @@ namespace GraphToys {
 
         public:
             /* Parser can only be constructed via fd.                         */
-            JsonLexer( FdView fd ) : fd( fd ) {}
+            JsonLexer( int fd ) : fd( fd ) {}
             JsonLexer( const JsonLexer &other ) = delete;
             JsonLexer( JsonLexer &&other ) = delete;
             JsonLexer &operator=( const JsonLexer &other ) = delete;

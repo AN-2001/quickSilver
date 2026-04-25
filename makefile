@@ -1,12 +1,23 @@
-CC := g++
-CFLAGS := -Wall -Werror -std=c++17
+CXX := g++
+SUBSYSTEMS := jsonParser
+LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
 OBJECTS := main.o
+CXXFLAGS := -Wall -Werror -std=c++17 $(foreach s,$(SUBSYSTEMS),-I$(s))
+PROJ := graphToys
 
-graphToys: $(OBJECTS)
-	$(CC) $(OBJECTS) -o $@
+all: $(PROJ)
+
+graphToys: $(OBJECTS) $(SUBSYSTEMS)
+	$(CXX) $(OBJECTS) $(LIBS) -o $@
+
+$(SUBSYSTEMS):
+	+$(MAKE) -C $@
 
 %.o: %.cpp
-	$(CC) -c $(CFLAGS) $<
+	$(CXX) -c $(CXXFLAGS) $<
+
+.PHONY: all clean $(SUBSYSTEMS)
 
 clean:
-	rm *.o graphToys
+	@rm -f $(OBJECTS) $(PROJ)
+	$(foreach s,$(SUBSYSTEMS),+$(MAKE) -C $(s) clean;)
