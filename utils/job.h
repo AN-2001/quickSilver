@@ -11,55 +11,60 @@
 
 #pragma once
 
-#include <utility>
-#include <unistd.h>
+#include <cstdint>
+#include "jsonParser/jsonObject.h"
 #include <memory>
+#include "ownedFd.h"
+#include <unistd.h>
+#include <utility>
 
 namespace GraphToys {
-    class JsonObject;
     class Job {
         private:
-            int inFd;
-            int outFd;
-            bool closeInFd;
+            OwnedFd readFd;
+            int writeFd;
             std::unique_ptr< JsonObject > json;
 
         public:
-            Job( int fd ) noexcept
-                : inFd( fd ),
-                  outFd( fd ),
-                  closeInFd( true ),
+            Job( int readFd, int writeFd, bool ownsReadFd ) noexcept
+                : readFd( readFd, ownsReadFd  ),
+                  writeFd( writeFd ),
                   json( nullptr )
             {}
 
             Job( Job &&other ) noexcept
-                : inFd( std::exchange( other.inFd, -1 ) ),
-                  outFd( std::exchange( other.outFd, -1 ) ),
-                  closeInFd( std::exchange( other.closeInFd, false ) ),
-                  json( std::exchange( other.json, nullptr ) )
+                : readFd( std::move( other.readFd ) ),
+                  writeFd( std::exchange( other.writeFd, -1 ) ),
+                  json( std::move( other.json ) )
             {}
 
 
-            ~Job() noexcept {
-                if ( closeInFd && inFd != -1 )
-                    close( inFd );
-            }
+            ~Job() noexcept = default;
 
             Job &operator=( Job &&other ) noexcept
             {
                 if ( this == &other )
                     return *this;
 
-                std::swap( other.inFd, inFd );
-                std::swap( other.outFd, outFd );
-                std::swap( other.closeInFd, closeInFd );
-                std::swap( other.json, json );
+                readFd = std::move( other.readFd );
+                writeFd = std::exchange( other.writeFd, -1 );
+                json = std::move( other.json );
 
                 return *this;
             }
 
             Job( const Job &other ) = delete;
             Job &operator=( const Job &other ) = delete;
+
+            int read( void *buff, size_t size ) noexcept
+            {
+                return ::read( readFd.get(), buff, size );
+            }
+
+            int write( const void *buff, size_t size ) noexcept
+            {
+                return ::write( writeFd, buff, size );
+            }
     };
 
 };

@@ -13,9 +13,9 @@
 #include <cstdint>
 #include <optional>
 #include <string>
-#include "token.h"
 #include <variant>
-#include "uniqueFd.h"
+#include "token.h"
+#include "utils/job.h"
 
 namespace GraphToys {
 
@@ -23,23 +23,24 @@ namespace GraphToys {
         private:
             static constexpr size_t MAX_BUFFER_SIZE = 4096;
 
-            int fd;
+            Job &job;
 
-            size_t bufferPos;
-            size_t bufferSize;
-            uint8_t buffer[ MAX_BUFFER_SIZE ];
+            size_t bufferPos = 0;
+            size_t bufferSize = 0;
+            uint8_t buffer[ MAX_BUFFER_SIZE ]{};
 
-            size_t scratchPos;
-            size_t scratchSize;
-            uint8_t scratch[ MAX_BUFFER_SIZE ];
+            size_t scratchPos = 0;
+            size_t scratchSize = 0;
+            uint8_t scratch[ MAX_BUFFER_SIZE ]{};
             
             std::optional< JsonToken > lastToken;
 
-            bool eof;
+        private:
+            void processBuffer( int state = 0 );
 
         public:
             /* Parser can only be constructed via fd.                         */
-            JsonLexer( int fd ) : fd( fd ) {}
+            JsonLexer( Job &job ) : job( job ) {}
             JsonLexer( const JsonLexer &other ) = delete;
             JsonLexer( JsonLexer &&other ) = delete;
             JsonLexer &operator=( const JsonLexer &other ) = delete;

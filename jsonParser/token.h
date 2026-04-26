@@ -15,6 +15,7 @@
 namespace GraphToys {
     struct JsonToken {
         enum class Type {
+            Eof,
             Null,
             Number,
             String,

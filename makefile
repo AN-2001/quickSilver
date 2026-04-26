@@ -2,7 +2,7 @@ CXX := g++
 SUBSYSTEMS := jsonParser
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
 OBJECTS := main.o
-CXXFLAGS := -Wall -Werror -std=c++17 $(foreach s,$(SUBSYSTEMS),-I$(s))
+CXXFLAGS := -Wall -Werror -std=c++17 -I. -g
 PROJ := graphToys
 
 all: $(PROJ)
