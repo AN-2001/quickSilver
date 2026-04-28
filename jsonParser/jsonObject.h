@@ -2,11 +2,20 @@
 
 #include <exception>
 #include <memory>
+#include <sstream>
 #include <unordered_map>
 #include <variant>
 #include <string>
 #include <vector>
 #include "exceptions.h"
+
+static std::string escapeString( const std::string &str ) {
+    std::stringstream ss;
+    ss << "\"";
+    ss << str;
+    ss << "\"";
+    return ss.str();
+}
 
 namespace GraphToys {
     struct JsonObject {
@@ -104,6 +113,73 @@ namespace GraphToys {
             if ( !std::holds_alternative< std::string >( value ) )
                 throw JsonException( "Cannot convert JSON object to 'char*'" );
             return std::get< std::string > ( value ).c_str();;
+        }
+
+
+        public:
+
+        std::string serialize() const {
+            struct Visitor {
+                std::string operator()( std::monostate ) const {
+                    return "null";
+                }
+
+                std::string operator()( const std::string &str ) const {
+                    return escapeString( str );
+                }
+
+                std::string operator()( const JsonMap &map ) const {
+                    std::stringstream ss;
+                    bool first = true;
+
+                    ss << "{";
+                    for ( const auto &pair : map ) {
+                        if ( first ) {
+                            ss << escapeString( pair.first );
+                            ss << ":";
+                            ss << pair.second.serialize();
+                            first = false;
+                        } else {
+                            ss << ",";
+                            ss << escapeString( pair.first );
+                            ss << ":";
+                            ss << pair.second.serialize();
+                        }
+                    }
+                    ss << "}";
+
+                    return ss.str();
+                }
+
+                std::string operator()( const JsonArray &arr ) const {
+                    std::stringstream ss;
+                    bool first = true;
+
+                    ss << "[";
+                    for ( const auto &json : arr ) {
+                        if ( first ) {
+                            ss << json.serialize();
+                            first = false;
+                        } else {
+                            ss << ",";
+                            ss << json.serialize();
+                        }
+                    }
+                    ss << "]";
+
+                    return ss.str();
+                }
+
+                std::string operator()( bool b ) const {
+                    return b ? "true" : "false";
+                }
+
+                std::string operator()( double d ) const {
+                    return std::to_string( d );
+                }
+            };
+
+            return std::visit( Visitor{}, value );
         }
 
 

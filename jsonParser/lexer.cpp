@@ -136,7 +136,7 @@ namespace GraphToys {
            return;
        }
 
-       while( bufferPos < bufferSize && std::isspace( buffer[ bufferPos ] ) )
+       while( bufferPos < bufferSize && std::isspace( static_cast< unsigned char > ( buffer[ bufferPos ] ) ) )
            bufferPos++;
 
        if ( bufferPos == bufferSize ) {
@@ -201,11 +201,6 @@ namespace GraphToys {
         if ( lastToken.has_value() )
             return lastToken.value();
         processBuffer();
-        if ( !lastToken.has_value() ) {
-            /* ERROR HERE. */
-            throw std::exception( );
-        }
-
         return lastToken.value();
     }
 
@@ -218,11 +213,6 @@ namespace GraphToys {
             return ret;
         }
         processBuffer();
-        if ( !lastToken.has_value() ) {
-            /* ERROR HERE. */
-            throw std::exception( );
-        }
-
         JsonToken ret = lastToken.value();
         if ( ret.type != JsonToken::Type::Eof )
             lastToken.reset();

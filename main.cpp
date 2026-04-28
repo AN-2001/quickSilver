@@ -35,13 +35,11 @@ std::string tokenTypeToString( GraphToys::JsonToken::Type type )
 
 int main()
 {
-    GraphToys::Job job( 0, 1, false );
-    GraphToys::JsonLexer lexer( job );
+    GraphToys::JsonObject obj;
 
-    do {
-        std::cout << tokenTypeToString( lexer.getToken().type ) << std::endl;
-    } while ( lexer.peekToken().type != GraphToys::JsonToken::Type::Eof );
-    std::cout << tokenTypeToString( lexer.peekToken().type ) << std::endl;
-
+    obj[ "based" ] = "A.N";
+    obj[ "retards" ][ 0 ] = "Nadav" ;
+    obj[ "retards" ][ 1 ] = "Amir" ;
+    std::cout << obj.serialize() << std::endl;
     return 0;
 }
