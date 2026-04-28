@@ -4,20 +4,22 @@
 #include <ctype.h>
 #include <exception>
 #include <string>
+#include "exceptions.h"
 
-#define PROCESS_BUFFER_STATE_FREE   (0)
-#define PROCESS_BUFFER_STATE_NUMBER (1)
-#define PROCESS_BUFFER_STATE_STRING (2)
-#define PROCESS_BUFFER_STATE_T      (3)
-#define PROCESS_BUFFER_STATE_TR     (4)
-#define PROCESS_BUFFER_STATE_TRU    (5)
-#define PROCESS_BUFFER_STATE_F      (6)
-#define PROCESS_BUFFER_STATE_FA     (7)
-#define PROCESS_BUFFER_STATE_FAL    (8)
-#define PROCESS_BUFFER_STATE_FALS   (9)
-#define PROCESS_BUFFER_STATE_N      (10)
-#define PROCESS_BUFFER_STATE_NU     (11)
-#define PROCESS_BUFFER_STATE_NUL    (12)
+#define PROCESS_BUFFER_STATE_FREE       (0)
+#define PROCESS_BUFFER_STATE_NUMBER_NEG (1)
+#define PROCESS_BUFFER_STATE_NUMBER     (2)
+#define PROCESS_BUFFER_STATE_STRING     (3)
+#define PROCESS_BUFFER_STATE_T          (4)
+#define PROCESS_BUFFER_STATE_TR         (5)
+#define PROCESS_BUFFER_STATE_TRU        (6)
+#define PROCESS_BUFFER_STATE_F          (7)
+#define PROCESS_BUFFER_STATE_FA         (8)
+#define PROCESS_BUFFER_STATE_FAL        (9)
+#define PROCESS_BUFFER_STATE_FALS       (10)
+#define PROCESS_BUFFER_STATE_N          (11)
+#define PROCESS_BUFFER_STATE_NU         (12)
+#define PROCESS_BUFFER_STATE_NUL        (13)
 
 namespace GraphToys {
 
@@ -30,6 +32,8 @@ namespace GraphToys {
             if ( !bufferSize ) {
                 if ( state == PROCESS_BUFFER_STATE_FREE )
                     lastToken.emplace( JsonToken::Type::Eof );
+                else
+                    throw JsonParseError( "Unexpected EOF." );
                 return;
             }
        }
@@ -46,9 +50,14 @@ namespace GraphToys {
            return;
        }
 
-       if ( state == PROCESS_BUFFER_STATE_NUMBER ) {
+       if ( state == PROCESS_BUFFER_STATE_NUMBER || state == PROCESS_BUFFER_STATE_NUMBER_NEG ) {
            if ( !std::isdigit( buffer[ bufferPos ] ) ) {
-               lastToken.emplace( std::stod( std::string( (char*)scratch, scratchPos )  )  );
+               /* TODO: Catch exceptions here and rethrow, this needs a bit of a small redesign. */
+               double res = std::stod( std::string( (char*)scratch, scratchPos )  );
+               
+               if ( state == PROCESS_BUFFER_STATE_NUMBER_NEG )
+                   res = res * -1;
+               lastToken.emplace( res );
                scratchPos = 0;
                return;
            }
@@ -59,70 +68,70 @@ namespace GraphToys {
 
        if ( state == PROCESS_BUFFER_STATE_T ) {
            if ( buffer[ bufferPos++ ] != 'r' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'true'" );
            processBuffer( PROCESS_BUFFER_STATE_TR );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_TR ) {
            if ( buffer[ bufferPos++ ] != 'u' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'true'" );
            processBuffer( PROCESS_BUFFER_STATE_TRU );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_TRU ) {
            if ( buffer[ bufferPos++ ] != 'e' ) 
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'true'" );
            lastToken.emplace( true );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_F ) {
            if ( buffer[ bufferPos++ ] != 'a' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'false'" );
            processBuffer( PROCESS_BUFFER_STATE_FA );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_FA ) {
            if ( buffer[ bufferPos++ ] != 'l' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'false'" );
            processBuffer( PROCESS_BUFFER_STATE_FAL );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_FAL ) {
            if ( buffer[ bufferPos++ ] != 's' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'false'" );
            processBuffer( PROCESS_BUFFER_STATE_FALS );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_FALS ) {
            if ( buffer[ bufferPos++ ] != 'e' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'false'" );
            lastToken.emplace( false );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_N ) {
            if ( buffer[ bufferPos++ ] != 'u' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'null'" );
            processBuffer( PROCESS_BUFFER_STATE_NU );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_NU ) {
            if ( buffer[ bufferPos++ ] != 'l' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'null'" );
            processBuffer( PROCESS_BUFFER_STATE_NUL );
            return;
        }
 
        if ( state == PROCESS_BUFFER_STATE_NUL ) {
            if ( buffer[ bufferPos++ ] != 'l' )
-               return;
+               throw JsonParseError( "Unexpected literal, expecting 'null'" );
            lastToken.emplace( JsonToken::Type::Null );
            return;
        }
@@ -163,6 +172,10 @@ namespace GraphToys {
             case '"':
                 bufferPos++;
                 processBuffer( PROCESS_BUFFER_STATE_STRING );
+                break;
+            case '-':
+                bufferPos++;
+                processBuffer( PROCESS_BUFFER_STATE_NUMBER_NEG );
                 break;
             case '0': case '1': case '2': case '3': case '4': 
             case '5': case '6': case '7': case '8': case '9':
