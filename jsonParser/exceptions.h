@@ -1,3 +1,12 @@
+/******************************************************************************\
+*  exceptions.h                                                                *
+*                                                                              *
+*  Exception definitions for the JsonParser.                                   *
+*                                                                              *
+*              Written by A.N.                                  29-04-2026     *
+*                                                                              *
+\******************************************************************************/
+
 #pragma once
 #include <exception>
 #include <stdexcept>
