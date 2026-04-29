@@ -1,3 +1,14 @@
+/******************************************************************************\
+*  jsonObject.h                                                                *
+*                                                                              *
+*  This header describes how a json object should behave in our context.       *
+*  It implements a recursive type that leverages std::variant to give an ergo- *
+*  nomic interface for manipulating json.                                      *
+*                                                                              *
+*              Written by A.N.                                  29-04-2026     *
+*                                                                              *
+\******************************************************************************/
+
 #pragma once
 
 #include <exception>
@@ -12,7 +23,24 @@
 static std::string escapeString( const std::string &str ) {
     std::stringstream ss;
     ss << "\"";
-    ss << str;
+    for ( unsigned char c : str ) {
+        if ( c == '\n' )
+            ss << "\\n";
+        else if ( c == '\r' )
+            ss << "\\r";
+        else if ( c == '\t' )
+            ss << "\\t";
+        else if ( c == '"' )
+            ss << "\\\"";
+        else if ( c == '\\' )
+            ss << "\\\\";
+        else if ( c == '\b' )
+            ss << "\\b";
+        else if ( c == '\f' )
+            ss << "\\f";
+        else
+            ss << c;
+    }
     ss << "\"";
     return ss.str();
 }
