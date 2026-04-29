@@ -12,12 +12,9 @@
 #include <string>
 #include <variant>
 
+namespace Json {
 
-
-
-namespace GraphToys {
-
-    struct JsonToken {
+    struct Token {
         enum class Type {
             Eof,
             Null,
@@ -41,46 +38,46 @@ namespace GraphToys {
         Type type;
         Value value;
 
-        JsonToken( Type type )
+        Token( Type type )
             : type( type ), value( std::monostate{} )
             {}
 
-        JsonToken( double number )
+        Token( double number )
             : type( Type::Number ), value( number  )
             {}
 
-        JsonToken( bool boolean )
+        Token( bool boolean )
             : type( Type::Boolean ), value( boolean )
             {}
 
-        JsonToken( const std::string &string )
+        Token( const std::string &string )
             : type( Type::String ), value( string )
             {}
 
         operator std::string() const {
 
             switch( type ) {
-                case GraphToys::JsonToken::Type::Eof:
+                case Type::Eof:
                     return "EOF";
-                case GraphToys::JsonToken::Type::Null:
+                case Type::Null:
                     return "NULL";
-                case GraphToys::JsonToken::Type::String:
+                case Type::String:
                     return "STRING < " + std::get< std::string > ( value ) + " >";
-                case GraphToys::JsonToken::Type::Number:
+                case Type::Number:
                     return "NUMBER < " + std::to_string( std::get< double > ( value ) ) + " >" ;
-                case GraphToys::JsonToken::Type::Boolean:
+                case Type::Boolean:
                     return "BOOLEAN < " + std::string(std::get< bool > ( value ) ? "true" : "false") + " >" ;
-                case GraphToys::JsonToken::Type::LeftBrace:
+                case Type::LeftBrace:
                     return "LEFT_BRACE";
-                case GraphToys::JsonToken::Type::RightBrace:
+                case Type::RightBrace:
                     return "RIGHT_BRACE";
-                case GraphToys::JsonToken::Type::LeftBracket:
+                case Type::LeftBracket:
                     return "LEFT_BRACKET";
-                case GraphToys::JsonToken::Type::RightBracket:
+                case Type::RightBracket:
                     return "RIGHT_BRACKET";
-                case GraphToys::JsonToken::Type::Comma:
+                case Type::Comma:
                     return "COMMA";
-                case GraphToys::JsonToken::Type::Colon:
+                case Type::Colon:
                     return "COLON";
             }
 

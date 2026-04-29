@@ -45,10 +45,10 @@ static std::string escapeString( const std::string &str ) {
     return ss.str();
 }
 
-namespace GraphToys {
-    struct JsonObject {
-        using JsonMap = std::unordered_map< std::string, JsonObject >;
-        using JsonArray = std::vector< JsonObject >;
+namespace Json {
+    struct Object {
+        using JsonMap = std::unordered_map< std::string, Object >;
+        using JsonArray = std::vector< Object >;
 
         using Value =
                 std::variant<
@@ -61,21 +61,31 @@ namespace GraphToys {
                 >;
         Value value;
 
-        JsonObject() : value( std::monostate() ) {}
+        Object() : value( std::monostate() ) {}
 
-        JsonObject( JsonMap &&map ) : value( std::move( map ) )  {}
-        JsonObject( JsonArray &&arr ) : value( std::move( arr ) ) {}
+        Object( JsonMap &&map ) : value( std::move( map ) )  {}
+        Object( JsonArray &&arr ) : value( std::move( arr ) ) {}
 
-        JsonObject( const std::string &str ) : value( str ) {}
-        JsonObject( std::string &&str ) : value( std::move( str ) ) {}
-        JsonObject( const char *str ) : value( std::string( str ) ) {}
+        Object( const std::string &str ) : value( str ) {}
+        Object( std::string &&str ) : value( std::move( str ) ) {}
+        Object( const char *str ) : value( std::string( str ) ) {}
 
-        JsonObject( bool b ) : value( b ) {}
+        Object( bool b ) : value( b ) {}
 
-        JsonObject( double n ) : value( n ) {}
-        JsonObject( int n ) : value( static_cast< double >( n ) ) {}
+        Object( double n ) : value( n ) {}
+        Object( int n ) : value( static_cast< double >( n ) ) {}
 
-        JsonObject &operator[]( const std::string &key )
+        void push_back( Object &obj ) 
+        {
+            if ( std::holds_alternative< std::monostate >( value ) ) 
+                value = JsonArray();
+            if ( !std::holds_alternative< JsonArray >( value ) )
+                throw JsonKeyError( "Json is not an array" );
+            auto &arr = std::get< JsonArray > ( value );
+            arr.push_back( std::move( obj ) ) ;
+        }
+
+        Object &operator[]( const std::string &key )
         {
             if ( std::holds_alternative< std::monostate >( value ) ) 
                 value = JsonMap();
@@ -83,11 +93,11 @@ namespace GraphToys {
                 throw JsonKeyError( "Json is not an object" );
             auto &map = std::get<JsonMap>( value );
             if ( !map.count( key ) ) 
-                map[ key ] = JsonObject();
+                map[ key ] = Object();
             return map[ key ];
         }
 
-        JsonObject &operator[]( const char *key )
+        Object &operator[]( const char *key )
         {
             if ( std::holds_alternative< std::monostate >( value ) ) 
                 value = JsonMap();
@@ -95,11 +105,11 @@ namespace GraphToys {
                 throw JsonKeyError( "Json is not an object" );
             auto &map = std::get<JsonMap>( value );
             if ( !map.count( key ) ) 
-                map[ key ] = JsonObject();
+                map[ key ] = Object();
             return map[ key ];
         }
 
-        JsonObject &operator[]( int index )
+        Object &operator[]( int index )
         {
             if ( std::holds_alternative< std::monostate >( value ) ) 
                 value = JsonArray();
@@ -108,7 +118,7 @@ namespace GraphToys {
             auto &arr = std::get<JsonArray>( value );
             if ( arr.size() <= static_cast< std::size_t >( index ) ) { 
                 arr.resize( static_cast< std::size_t >( index + 1 ) );
-                arr[ index ] = JsonObject();
+                arr[ index ] = Object();
             }
             return arr[ index ];
         }
@@ -212,5 +222,4 @@ namespace GraphToys {
 
 
     };
-
 };

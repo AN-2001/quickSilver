@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-namespace GraphToys {
+namespace Utils {
 
     class OwnedFd {
         private:

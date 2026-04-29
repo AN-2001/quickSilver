@@ -17,13 +17,12 @@
 #include "token.h"
 #include "utils/job.h"
 
-namespace GraphToys {
-
-    class JsonLexer {
+namespace Json {
+    class Lexer {
         private:
             static constexpr size_t MAX_BUFFER_SIZE = 4096;
 
-            Job &job;
+            Utils::Job &job;
 
             size_t bufferPos = 0;
             size_t bufferSize = 0;
@@ -33,23 +32,22 @@ namespace GraphToys {
             size_t scratchSize = 0;
             uint8_t scratch[ MAX_BUFFER_SIZE ]{};
             
-            std::optional< JsonToken > lastToken;
+            std::optional< Token > lastToken;
 
         private:
             void processBuffer( int state = 0 );
 
         public:
             /* Parser can only be constructed via fd.                         */
-            JsonLexer( Job &job ) : job( job ) {}
-            JsonLexer( const JsonLexer &other ) = delete;
-            JsonLexer( JsonLexer &&other ) = delete;
-            JsonLexer &operator=( const JsonLexer &other ) = delete;
-            JsonLexer &operator=( JsonLexer &&other ) = delete;
+            Lexer( Utils::Job &job ) : job( job ) {}
+            Lexer( const Lexer &other ) = delete;
+            Lexer( Lexer &&other ) = delete;
+            Lexer &operator=( const Lexer &other ) = delete;
+            Lexer &operator=( Lexer &&other ) = delete;
 
-            ~JsonLexer(){ /* Lexer should not own anything. */ }
+            ~Lexer(){ /* Lexer should not own anything. */ }
 
-            JsonToken getToken();
-            JsonToken peekToken();
-            bool isEof() const;
+            Token getToken();
+            Token peekToken();
     };
 };

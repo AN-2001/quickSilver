@@ -11,7 +11,7 @@
 #include <exception>
 #include <stdexcept>
 
-namespace GraphToys {
+namespace Json {
     class JsonException : public std::runtime_error {
         public:
             using std::runtime_error::runtime_error;
@@ -31,4 +31,4 @@ namespace GraphToys {
         public:
             using JsonException::JsonException;
     };
-};
+}

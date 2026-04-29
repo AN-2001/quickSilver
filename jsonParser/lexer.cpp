@@ -1,5 +1,5 @@
 #include "lexer.h"
-#include "jsonObject.h"
+#include "object.h"
 #include "token.h"
 #include <cctype>
 #include <ctype.h>
@@ -25,14 +25,13 @@
 #define PROCESS_BUFFER_STATE_NUL        (14)
 #define PROCESS_BUFFER_STATE_NULL       (15)
 
-namespace GraphToys {
-    
+namespace Json {
     static bool isNumberState( char c )
     {
         return std::isdigit( c ) || c == '-' || c == 'e' || c == 'E' || c == '.';
     }
 
-    void JsonLexer::processBuffer( int state )
+    void Lexer::processBuffer( int state )
     {
        if ( bufferPos == bufferSize ) {
             bufferPos = 0;
@@ -42,7 +41,7 @@ namespace GraphToys {
                      state == PROCESS_BUFFER_STATE_TRUE ||
                      state == PROCESS_BUFFER_STATE_FALSE ||
                      state == PROCESS_BUFFER_STATE_NULL )
-                    lastToken.emplace( JsonToken::Type::Eof );
+                    lastToken.emplace( Token::Type::Eof );
                 else
                     throw JsonParseError( "Unexpected EOF." );
                 return;
@@ -194,7 +193,7 @@ namespace GraphToys {
                 buffer[ bufferPos ] != '}')
                throw JsonParseError( "Unexpected token after 'null'" );
 
-           lastToken.emplace( GraphToys::JsonToken::Type::Null );
+           lastToken.emplace( Token::Type::Null );
            return;
        }
 
@@ -209,27 +208,27 @@ namespace GraphToys {
        switch ( buffer[ bufferPos ] ) {
             case '{':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::LeftBrace );
+                lastToken.emplace( Token::Type::LeftBrace );
                 break;
             case '}':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::RightBrace );
+                lastToken.emplace( Token::Type::RightBrace );
                 break;
             case '[':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::LeftBracket );
+                lastToken.emplace( Token::Type::LeftBracket );
                 break;
             case ']':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::RightBracket );
+                lastToken.emplace( Token::Type::RightBracket );
                 break;
             case ':':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::Colon );
+                lastToken.emplace( Token::Type::Colon );
                 break;
             case ',':
                 bufferPos++;
-                lastToken.emplace( JsonToken::Type::Comma );
+                lastToken.emplace( Token::Type::Comma );
                 break;
             case '"':
                 bufferPos++;
@@ -258,7 +257,7 @@ namespace GraphToys {
        }
     }
 
-    JsonToken JsonLexer::peekToken() 
+    Token Lexer::peekToken() 
     {
         if ( lastToken.has_value() )
             return lastToken.value();
@@ -266,17 +265,17 @@ namespace GraphToys {
         return lastToken.value();
     }
 
-    JsonToken JsonLexer::getToken() 
+    Token Lexer::getToken() 
     {
         if ( lastToken.has_value() ) {
-            JsonToken ret = lastToken.value();
-            if ( ret.type != JsonToken::Type::Eof )
+            Token ret = lastToken.value();
+            if ( ret.type != Token::Type::Eof )
                 lastToken.reset();
             return ret;
         }
         processBuffer();
-        JsonToken ret = lastToken.value();
-        if ( ret.type != JsonToken::Type::Eof )
+        Token ret = lastToken.value();
+        if ( ret.type != Token::Type::Eof )
             lastToken.reset();
         return ret;
     }

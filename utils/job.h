@@ -12,18 +12,18 @@
 #pragma once
 
 #include <cstdint>
-#include "jsonParser/jsonObject.h"
+#include "jsonParser/object.h"
 #include <memory>
 #include "ownedFd.h"
 #include <unistd.h>
 #include <utility>
 
-namespace GraphToys {
+namespace Utils {
     class Job {
         private:
             OwnedFd readFd;
             int writeFd;
-            std::unique_ptr< JsonObject > json;
+            std::unique_ptr< Json::Object > json;
 
         public:
             Job( int readFd, int writeFd, bool ownsReadFd ) noexcept
