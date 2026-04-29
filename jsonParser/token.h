@@ -13,7 +13,6 @@
 #include <variant>
 
 namespace Json {
-
     struct Token {
         enum class Type {
             Eof,
@@ -105,5 +104,8 @@ namespace Json {
         }
 
     };
+
+    std::string tokenTypeToString( Token::Type type );
+
 }
 

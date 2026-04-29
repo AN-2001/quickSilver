@@ -1,9 +1,0 @@
-{
-    "hello": {
-        "arr": [ 1, 2 , 3 , 4 ]
-    },
-    "people": {
-        "retards": [ "Nadav", "Amir" ],
-        "based": [ "Abed" ]
-    }
-}
