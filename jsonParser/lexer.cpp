@@ -1,28 +1,36 @@
 #include "lexer.h"
 #include "jsonObject.h"
 #include "token.h"
+#include <cctype>
 #include <ctype.h>
 #include <exception>
+#include <stdexcept>
 #include <string>
 #include "exceptions.h"
 
 #define PROCESS_BUFFER_STATE_FREE       (0)
-#define PROCESS_BUFFER_STATE_NUMBER_NEG (1)
-#define PROCESS_BUFFER_STATE_NUMBER     (2)
-#define PROCESS_BUFFER_STATE_STRING     (3)
-#define PROCESS_BUFFER_STATE_T          (4)
-#define PROCESS_BUFFER_STATE_TR         (5)
-#define PROCESS_BUFFER_STATE_TRU        (6)
+#define PROCESS_BUFFER_STATE_NUMBER     (1)
+#define PROCESS_BUFFER_STATE_STRING     (2)
+#define PROCESS_BUFFER_STATE_T          (3)
+#define PROCESS_BUFFER_STATE_TR         (4)
+#define PROCESS_BUFFER_STATE_TRU        (5)
+#define PROCESS_BUFFER_STATE_TRUE       (6)
 #define PROCESS_BUFFER_STATE_F          (7)
 #define PROCESS_BUFFER_STATE_FA         (8)
 #define PROCESS_BUFFER_STATE_FAL        (9)
 #define PROCESS_BUFFER_STATE_FALS       (10)
-#define PROCESS_BUFFER_STATE_N          (11)
-#define PROCESS_BUFFER_STATE_NU         (12)
-#define PROCESS_BUFFER_STATE_NUL        (13)
+#define PROCESS_BUFFER_STATE_FALSE      (11)
+#define PROCESS_BUFFER_STATE_N          (12)
+#define PROCESS_BUFFER_STATE_NU         (13)
+#define PROCESS_BUFFER_STATE_NUL        (14)
+#define PROCESS_BUFFER_STATE_NULL       (15)
 
 namespace GraphToys {
-
+    
+    static bool isNumberState( char c )
+    {
+        return std::isdigit( c ) || c == '-' || c == 'e' || c == 'E' || c == '.';
+    }
 
     void JsonLexer::processBuffer( int state )
     {
@@ -30,7 +38,10 @@ namespace GraphToys {
             bufferPos = 0;
             bufferSize = job.read( buffer, MAX_BUFFER_SIZE );
             if ( !bufferSize ) {
-                if ( state == PROCESS_BUFFER_STATE_FREE )
+                if ( state == PROCESS_BUFFER_STATE_FREE ||
+                     state == PROCESS_BUFFER_STATE_TRUE ||
+                     state == PROCESS_BUFFER_STATE_FALSE ||
+                     state == PROCESS_BUFFER_STATE_NULL )
                     lastToken.emplace( JsonToken::Type::Eof );
                 else
                     throw JsonParseError( "Unexpected EOF." );
@@ -45,22 +56,31 @@ namespace GraphToys {
                scratchPos = 0;
                return;
            }
+           if ( scratchPos >= MAX_BUFFER_SIZE )
+               throw JsonParseError( "Out of scratch space" );
            scratch[ scratchPos++ ] = buffer[ bufferPos++ ];
            processBuffer( state );
            return;
        }
 
-       if ( state == PROCESS_BUFFER_STATE_NUMBER || state == PROCESS_BUFFER_STATE_NUMBER_NEG ) {
-           if ( !std::isdigit( buffer[ bufferPos ] ) ) {
-               /* TODO: Catch exceptions here and rethrow, this needs a bit of a small redesign. */
-               double res = std::stod( std::string( (char*)scratch, scratchPos )  );
-               
-               if ( state == PROCESS_BUFFER_STATE_NUMBER_NEG )
-                   res = res * -1;
-               lastToken.emplace( res );
+       if ( state == PROCESS_BUFFER_STATE_NUMBER ) {
+           if ( !isNumberState( buffer[ bufferPos ] ) ) {
+
+               try {
+                   double res = std::stod( std::string( (char*)scratch, scratchPos )  );
+                   lastToken.emplace( res );
+               } catch ( std::invalid_argument &e ) {
+                   throw JsonParseError( "Number is malformed" );
+               } catch ( std::out_of_range &e ) {
+                   throw JsonParseError( "Number is out of range" );
+               }
+
                scratchPos = 0;
                return;
            }
+
+           if ( scratchPos >= MAX_BUFFER_SIZE )
+               throw JsonParseError( "Out of scratch space" );
            scratch[ scratchPos++ ] = buffer[ bufferPos++ ];
            processBuffer( state );
            return;
@@ -83,6 +103,20 @@ namespace GraphToys {
        if ( state == PROCESS_BUFFER_STATE_TRU ) {
            if ( buffer[ bufferPos++ ] != 'e' ) 
                throw JsonParseError( "Unexpected literal, expecting 'true'" );
+           processBuffer( PROCESS_BUFFER_STATE_TRUE );
+           return;
+       }
+
+       if ( state == PROCESS_BUFFER_STATE_TRUE ) {
+           if ( !std::isspace( (unsigned char) buffer[ bufferPos ] ) &&
+                buffer[ bufferPos ] != ',' &&
+                buffer[ bufferPos ] != ':' &&
+                buffer[ bufferPos ] != '[' &&
+                buffer[ bufferPos ] != ']' &&
+                buffer[ bufferPos ] != '{' &&
+                buffer[ bufferPos ] != '}')
+               throw JsonParseError( "Unexpected token after 'true'" );
+
            lastToken.emplace( true );
            return;
        }
@@ -111,6 +145,20 @@ namespace GraphToys {
        if ( state == PROCESS_BUFFER_STATE_FALS ) {
            if ( buffer[ bufferPos++ ] != 'e' )
                throw JsonParseError( "Unexpected literal, expecting 'false'" );
+           processBuffer( PROCESS_BUFFER_STATE_FALSE );
+           return;
+       }
+
+       if ( state == PROCESS_BUFFER_STATE_FALSE ) {
+           if ( !std::isspace( (unsigned char) buffer[ bufferPos ] ) &&
+                buffer[ bufferPos ] != ',' &&
+                buffer[ bufferPos ] != ':' &&
+                buffer[ bufferPos ] != '[' &&
+                buffer[ bufferPos ] != ']' &&
+                buffer[ bufferPos ] != '{' &&
+                buffer[ bufferPos ] != '}')
+               throw JsonParseError( "Unexpected token after 'false'" );
+
            lastToken.emplace( false );
            return;
        }
@@ -132,7 +180,21 @@ namespace GraphToys {
        if ( state == PROCESS_BUFFER_STATE_NUL ) {
            if ( buffer[ bufferPos++ ] != 'l' )
                throw JsonParseError( "Unexpected literal, expecting 'null'" );
-           lastToken.emplace( JsonToken::Type::Null );
+           processBuffer( PROCESS_BUFFER_STATE_NULL );
+           return;
+       }
+
+       if ( state == PROCESS_BUFFER_STATE_NULL ) {
+           if ( !std::isspace( (unsigned char) buffer[ bufferPos ] ) &&
+                buffer[ bufferPos ] != ',' &&
+                buffer[ bufferPos ] != ':' &&
+                buffer[ bufferPos ] != '[' &&
+                buffer[ bufferPos ] != ']' &&
+                buffer[ bufferPos ] != '{' &&
+                buffer[ bufferPos ] != '}')
+               throw JsonParseError( "Unexpected token after 'null'" );
+
+           lastToken.emplace( GraphToys::JsonToken::Type::Null );
            return;
        }
 
@@ -173,10 +235,8 @@ namespace GraphToys {
                 bufferPos++;
                 processBuffer( PROCESS_BUFFER_STATE_STRING );
                 break;
+
             case '-':
-                bufferPos++;
-                processBuffer( PROCESS_BUFFER_STATE_NUMBER_NEG );
-                break;
             case '0': case '1': case '2': case '3': case '4': 
             case '5': case '6': case '7': case '8': case '9':
                 processBuffer( PROCESS_BUFFER_STATE_NUMBER );
@@ -193,6 +253,8 @@ namespace GraphToys {
                 bufferPos++;
                 processBuffer( PROCESS_BUFFER_STATE_N );
                 break;
+            default:
+                throw JsonParseError( "Unrecognized literal" );
        }
     }
 
