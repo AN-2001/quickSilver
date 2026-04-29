@@ -23,9 +23,10 @@ namespace Utils {
         private:
             OwnedFd readFd;
             int writeFd;
-            std::unique_ptr< Json::Object > json;
 
         public:
+            std::unique_ptr< Json::Object > json;
+
             Job( int readFd, int writeFd, bool ownsReadFd ) noexcept
                 : readFd( readFd, ownsReadFd  ),
                   writeFd( writeFd ),

@@ -1,6 +1,6 @@
 CXX := g++
 CXXFLAGS := -Wall -Werror -std=c++17 -I.. -g
-OBJECTS := lexer.o
+OBJECTS := lexer.o parser.o
 ARCHIVE := jsonParser.a
 
 all: $(ARCHIVE)

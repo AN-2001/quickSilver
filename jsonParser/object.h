@@ -75,7 +75,7 @@ namespace Json {
         Object( double n ) : value( n ) {}
         Object( int n ) : value( static_cast< double >( n ) ) {}
 
-        void push_back( Object &obj ) 
+        void push_back( const Object &obj ) 
         {
             if ( std::holds_alternative< std::monostate >( value ) ) 
                 value = JsonArray();

@@ -54,6 +54,26 @@ namespace Json {
             : type( Type::String ), value( string )
             {}
 
+        bool operator==( Token::Type other ) {
+            return type == other;
+        }
+
+        bool operator!=( Token::Type other ) {
+            return type != other;
+        }
+
+        operator bool() {
+            return std::get< bool > ( value );
+        }
+
+        operator double() {
+            return std::get< double > ( value );
+        }
+
+        operator std::string() {
+            return std::get< std::string > ( value );
+        }
+
         operator std::string() const {
 
             switch( type ) {
