@@ -71,90 +71,112 @@ namespace Json {
         Object( const char *str ) : value( std::string( str ) ) {}
 
         Object( bool b ) : value( b ) {}
-
         Object( double n ) : value( n ) {}
         Object( int n ) : value( static_cast< double >( n ) ) {}
 
-        void push_back( const Object &obj ) 
+        template <typename T >
+        void push_back( T &&obj ) 
         {
-            if ( std::holds_alternative< std::monostate >( value ) ) 
-                value = JsonArray();
+            if ( !std::is_constructible_v< Object, T&& > )
+                throw JsonIndexError( "Json array element element must be a Json::Object" );
             if ( !std::holds_alternative< JsonArray >( value ) )
                 throw JsonKeyError( "Json is not an array" );
             auto &arr = std::get< JsonArray > ( value );
-            arr.push_back( std::move( obj ) ) ;
+            arr.emplace_back( std::forward<T>( obj ) ) ;
         }
 
-        Object &operator[]( const std::string &key )
-        {
-            if ( std::holds_alternative< std::monostate >( value ) ) 
-                value = JsonMap();
-            if ( !std::holds_alternative< JsonMap >( value ) )
-                throw JsonKeyError( "Json is not an object" );
-            auto &map = std::get<JsonMap>( value );
-            if ( !map.count( key ) ) 
-                map[ key ] = Object();
-            return map[ key ];
-        }
-
-        Object &operator[]( const char *key )
-        {
-            if ( std::holds_alternative< std::monostate >( value ) ) 
-                value = JsonMap();
-            if ( !std::holds_alternative< JsonMap >( value ) )
-                throw JsonKeyError( "Json is not an object" );
-            auto &map = std::get<JsonMap>( value );
-            if ( !map.count( key ) ) 
-                map[ key ] = Object();
-            return map[ key ];
-        }
-
-        Object &operator[]( int index )
-        {
-            if ( std::holds_alternative< std::monostate >( value ) ) 
-                value = JsonArray();
+        void set_array_size( size_t n ) {
             if ( !std::holds_alternative< JsonArray >( value ) )
                 throw JsonKeyError( "Json is not an array" );
+            auto &arr = std::get< JsonArray > ( value );
+            arr.resize( n );
+        }
+
+        template <typename T >
+        void set_array_at_index( int index, T &&obj ) 
+        {
+            if ( !std::is_constructible_v< Object, T&& > )
+                throw JsonIndexError( "Json array element element must be a Json::Object" );
+            if ( !std::holds_alternative< JsonArray >( value ) )
+                throw JsonKeyError( "Json is not an array" );
+            auto &arr = std::get< JsonArray > ( value );
+            arr[ index ] = std::forward<T>( obj );
+        }
+
+        template < typename T, typename K >
+        void add_mapping( K &&str, T &&obj ) 
+        {
+            if ( !std::is_constructible_v< std::string, K&& > )
+                throw JsonKeyError( "Json map key must be a string" );
+            if ( !std::is_constructible_v< Object, T&& > )
+                throw JsonKeyError( "Json map object must be a Json::Object" );
+            if ( !std::holds_alternative< JsonMap >( value ) )
+                throw JsonKeyError( "Json is not a map" );
+            auto &map = std::get< JsonMap > ( value );
+            map.emplace( std::forward<K>( str ), std::forward<T>( obj ) );
+        }
+
+        const Object &operator[]( const std::string &key ) const
+        {
+            if ( !std::holds_alternative< JsonMap >( value ) )
+                throw JsonKeyError( "Json is not a map" );
+            auto &map = std::get<JsonMap>( value );
+            const auto &it = map.find( key );
+            if ( it == map.end() )
+                throw JsonKeyError( "Json key does not exist" );
+            return (*it).second;
+        }
+
+        const Object &operator[]( const char *key ) const
+        {
+            if ( !std::holds_alternative< JsonMap >( value ) )
+                throw JsonKeyError( "Json is not a a map" );
+            auto &map = std::get<JsonMap>( value );
+            const auto &it = map.find( key );
+            if ( it == map.end() )
+                throw JsonKeyError( "Json key does not exist" );
+            return (*it).second;
+        }
+
+        const Object &operator[]( int index ) const
+        {
+            if ( !std::holds_alternative< JsonArray >( value ) )
+                throw JsonIndexError( "Json is not an array" );
             auto &arr = std::get<JsonArray>( value );
-            if ( arr.size() <= static_cast< std::size_t >( index ) ) { 
-                arr.resize( static_cast< std::size_t >( index + 1 ) );
-                arr[ index ] = Object();
-            }
+            if ( arr.size() <= static_cast< std::size_t >( index ) )
+                throw JsonIndexError( "Json index out of range" );
             return arr[ index ];
         }
 
-        operator double() const {
+        double toNumber() const {
             if ( !std::holds_alternative< double >( value ) )
                 throw JsonException( "Cannot convert JSON object to 'double" );
             return std::get< double > ( value );
         }
 
-        operator int() const {
-            if ( !std::holds_alternative< double >( value ) )
-                throw JsonException( "Cannot convert JSON object to 'int" );
-            return static_cast< int > ( std::get< double > ( value ) );
-        }
-
-        operator bool() const {
+        double toBool() const {
             if ( !std::holds_alternative< bool >( value ) )
                 throw JsonException( "Cannot convert JSON object to 'bool" );
             return std::get< bool > ( value );
         }
 
-        operator std::string() const {
+        const std::string &toString() const {
             if ( !std::holds_alternative< std::string >( value ) )
                 throw JsonException( "Cannot convert JSON object to 'std::string" );
             return std::get< std::string > ( value );
         }
 
-        operator const char*() const {
-            if ( !std::holds_alternative< std::string >( value ) )
-                throw JsonException( "Cannot convert JSON object to 'char*'" );
-            return std::get< std::string > ( value ).c_str();;
+        const JsonArray &toArray() const {
+            if ( !std::holds_alternative< JsonArray >( value ) )
+                throw JsonException( "Cannot convert JSON object to 'Json Array" );
+            return std::get< JsonArray > ( value );
         }
 
-
-        public:
+        const JsonMap &toMap() const {
+            if ( !std::holds_alternative< JsonMap >( value ) )
+                throw JsonException( "Cannot convert JSON object to 'Json Map" );
+            return std::get< JsonMap > ( value );
+        }
 
         std::string serialize() const {
             struct Visitor {
@@ -213,7 +235,7 @@ namespace Json {
                 }
 
                 std::string operator()( double d ) const {
-                    return std::to_string( d );
+                    return " " + std::to_string( (int)d );
                 }
             };
 

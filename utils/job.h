@@ -57,12 +57,12 @@ namespace Utils {
             Job( const Job &other ) = delete;
             Job &operator=( const Job &other ) = delete;
 
-            int read( void *buff, size_t size ) noexcept
+            int read( void *buff, const size_t size ) noexcept
             {
                 return ::read( readFd.get(), buff, size );
             }
 
-            int write( const void *buff, size_t size ) noexcept
+            int write( const void *buff, const size_t size ) noexcept
             {
                 return ::write( writeFd, buff, size );
             }

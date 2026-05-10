@@ -7,6 +7,8 @@
 #include <stdexcept>
 #include <string>
 #include "exceptions.h"
+#include <charconv>
+#include <system_error>
 
 #define PROCESS_BUFFER_STATE_FREE       (0)
 #define PROCESS_BUFFER_STATE_NUMBER     (1)
@@ -24,6 +26,7 @@
 #define PROCESS_BUFFER_STATE_NU         (13)
 #define PROCESS_BUFFER_STATE_NUL        (14)
 #define PROCESS_BUFFER_STATE_NULL       (15)
+#define PROCESS_BUFFER_STATE_COMMENT    (16)
 
 namespace Json {
     static bool isNumberState( char c )
@@ -65,15 +68,20 @@ namespace Json {
        if ( state == PROCESS_BUFFER_STATE_NUMBER ) {
            if ( !isNumberState( buffer[ bufferPos ] ) ) {
 
-               try {
-                   double res = std::stod( std::string( (char*)scratch, scratchPos )  );
-                   lastToken.emplace( res );
-               } catch ( std::invalid_argument &e ) {
+               double res;
+               auto [ ptr, err ] = std::from_chars(
+                    (char*)scratch,
+                    (char*)scratch + scratchPos,
+                    res
+               );
+               if ( err == std::errc::invalid_argument ) 
                    throw JsonParseError( "Number is malformed" );
-               } catch ( std::out_of_range &e ) {
+               if ( err == std::errc::result_out_of_range )
                    throw JsonParseError( "Number is out of range" );
-               }
+               if ( ptr != (char*)scratch + scratchPos ) 
+                   throw JsonParseError( "Number was not fully consumed" );
 
+               lastToken.emplace( res );
                scratchPos = 0;
                return;
            }
@@ -197,8 +205,14 @@ namespace Json {
            return;
        }
 
-       while( bufferPos < bufferSize && std::isspace( static_cast< unsigned char > ( buffer[ bufferPos ] ) ) )
+       while( bufferPos < bufferSize && (
+               std::isspace( static_cast< unsigned char > ( buffer[ bufferPos ] ) )  ||
+               state == PROCESS_BUFFER_STATE_COMMENT )
+            ) {
+           if ( buffer[ bufferPos ] == '\n' && state == PROCESS_BUFFER_STATE_COMMENT )
+                   state = PROCESS_BUFFER_STATE_FREE;
            bufferPos++;
+       }
 
        if ( bufferPos == bufferSize ) {
            processBuffer( state );
@@ -252,12 +266,16 @@ namespace Json {
                 bufferPos++;
                 processBuffer( PROCESS_BUFFER_STATE_N );
                 break;
+            case '#':
+                bufferPos++;
+                processBuffer( PROCESS_BUFFER_STATE_COMMENT );
+                break;
             default:
                 throw JsonParseError( "Unrecognized literal" );
        }
     }
 
-    Token Lexer::peekToken() 
+    const Token &Lexer::peekToken() 
     {
         if ( lastToken.has_value() )
             return lastToken.value();
@@ -268,13 +286,13 @@ namespace Json {
     Token Lexer::getToken() 
     {
         if ( lastToken.has_value() ) {
-            Token ret = lastToken.value();
+            Token ret = std::move( lastToken.value() );
             if ( ret.type != Token::Type::Eof )
                 lastToken.reset();
             return ret;
         }
         processBuffer();
-        Token ret = lastToken.value();
+        Token ret = std::move( lastToken.value() );
         if ( ret.type != Token::Type::Eof )
             lastToken.reset();
         return ret;

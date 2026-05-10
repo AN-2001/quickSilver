@@ -48,6 +48,6 @@ namespace Json {
             ~Lexer(){ /* Lexer should not own anything. */ }
 
             Token getToken();
-            Token peekToken();
+            const Token &peekToken();
     };
 };

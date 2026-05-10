@@ -14,10 +14,10 @@
 #include <unistd.h>
 
 namespace Utils {
+    constexpr int INVALID_FD = -1;
 
     class OwnedFd {
         private:
-            static constexpr int INVALID_FD = -1;
             int fd;
             bool isOwned;
         public:

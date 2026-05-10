@@ -9,6 +9,7 @@
 
 #pragma once
 
+#include "jsonParser/exceptions.h"
 #include <string>
 #include <variant>
 
@@ -53,24 +54,33 @@ namespace Json {
             : type( Type::String ), value( string )
             {}
 
-        bool operator==( Token::Type other ) {
+        bool operator==( Token::Type other ) const { 
             return type == other;
         }
 
-        bool operator!=( Token::Type other ) {
+        bool operator!=( Token::Type other ) const {
             return type != other;
         }
 
-        operator bool() {
+        bool takeBoolean() 
+        {
+            if ( !std::holds_alternative< bool >( value ) )
+                throw JsonException( "Token does not contain a boolean" );
             return std::get< bool > ( value );
         }
 
-        operator double() {
+        double takeNumber()
+        {
+            if ( !std::holds_alternative< double >( value ) )
+                throw JsonException( "Token does not contain a number" );
             return std::get< double > ( value );
         }
 
-        operator std::string() {
-            return std::get< std::string > ( value );
+        std::string takeString() 
+        {
+            if ( !std::holds_alternative< std::string >( value ) )
+                throw JsonException( "Token does not contain a string" );
+            return std::move( std::get< std::string > ( value ) );
         }
 
         operator std::string() const {

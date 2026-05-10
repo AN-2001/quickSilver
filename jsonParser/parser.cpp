@@ -18,9 +18,8 @@ namespace Json {
         Token token = lexer.getToken();
         if ( token != Token::Type::String )
             throw JsonParseError( "JsonParseError: Unexpected token, expecting " + tokenTypeToString( Token::Type::String ) );
-        return static_cast< std::string > ( token );
+        return token.takeString();
     }
-
 
     Object Parser::parseMap()
     {
@@ -32,13 +31,13 @@ namespace Json {
             if ( first ) {
                 key = expectString();
                 expect( Token::Type::Colon );
-                obj[ key ] = parseJson();
+                obj.add_mapping( std::move( key ), parseJson() );
                 first = false;
             } else {
                 expect( Token::Type::Comma );
                 key = expectString();
                 expect( Token::Type::Colon );
-                obj[ key ] = parseJson();
+                obj.add_mapping( std::move( key ), parseJson() );
             }
         }
         expect( Token::Type::RightBrace );
@@ -67,11 +66,11 @@ namespace Json {
     Object Parser::parseJson()
     {
         if ( lexer.peekToken() == Token::Type::Boolean ) 
-            return Object( (bool) lexer.getToken() );
+            return Object( lexer.getToken().takeBoolean() );
         if ( lexer.peekToken() == Token::Type::String ) 
-            return Object( (std::string) lexer.getToken() );
+            return Object( lexer.getToken().takeString() );
         if ( lexer.peekToken() == Token::Type::Number ) 
-            return Object( (double) lexer.getToken() );
+            return Object( lexer.getToken().takeNumber() );
         if ( lexer.peekToken() == Token::Type::Null ) {
             lexer.getToken();
             return Object();
