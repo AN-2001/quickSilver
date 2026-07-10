@@ -212,7 +212,4 @@ namespace JobTools {
                 return currentState == ValidatorState::Finish;
             }
     };
-
-
-
 }
