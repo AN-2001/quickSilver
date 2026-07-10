@@ -1,41 +1,134 @@
-/******************************************************************************\
-*  parser.h                                                                    *
-*                                                                              *
-*  Defines a top-down parser for json.                                         *
-*                                                                              *
-*              Written by A.N.                                  29-04-2026     *
-*                                                                              *
-\******************************************************************************/
-
 #pragma once
-#include "utils/job.h"
+
+#include "jsonParser/errors.h"
 #include "lexer.h"
-#include <memory>
+#include <array>
+#include <cstdint>
+#include <expected>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+#include "parserEvents.h"
 
 namespace Json {
-
     class Parser {
         private:
-            Utils::Job &job;
-            Lexer lexer;
+        static constexpr std::size_t NUM_EVENTS_PER_TYPE = 4096;
+        static constexpr std::size_t NUM_EVENTS = std::to_underlying( ParserEventType::NumEvents );
 
-            void expect( Token::Type tokenType );
-            std::string expectString();
-            Object parseJson();
-            Object parseMap();
-            Object parseArray();
+        std::vector< std::string > m_stringTable{};
+        std::array< std::array< ParserEvent, NUM_EVENTS_PER_TYPE>,
+                    NUM_EVENTS > m_eventQueue;
+        std::array< std::size_t, NUM_EVENTS > m_eventCounts{};
 
+        Json::Error addEvent( const ParserEvent &event ) noexcept
+        {
+            uint16_t index = std::to_underlying( event.m_type );
+            std::size_t &count = m_eventCounts[ index ];
+            if ( count == NUM_EVENTS_PER_TYPE )
+                return Json::Error::TooManyEvents;
+            m_eventQueue[ index ][ count++ ] = event;
+            return Json::Error::NoError;
+        }
+
+        [[nodiscard]] std::expected< uint16_t, Json::Error > addString( std::string_view view ) noexcept 
+        {
+            if ( m_stringTable.empty() )
+                m_stringTable.reserve( NUM_EVENTS_PER_TYPE );
+            if ( m_stringTable.size() == NUM_EVENTS_PER_TYPE )
+                return std::unexpected<Json::Error>( Json::Error::TooManyStrings );
+            m_stringTable.push_back( std::string( view ) );
+            return static_cast< uint16_t >( m_stringTable.size() - 1 );
+        }
+
+        Lexer &m_lexer;
+
+        [[nodiscard]] Json::Error expect( Json::Token token ) noexcept {
+            auto tok = m_lexer.get();
+            if ( !tok )
+                return tok.error();
+            if ( *tok != token )
+                return Json::Error::UnexpectedToken;
+            return Json::Error::NoError;
+        }
+
+        [[nodiscard]] Json::Error parseJob() noexcept;
+        [[nodiscard]] Json::Error parseJobType() noexcept;
+        [[nodiscard]] Json::Error parseAlgorithm() noexcept;
+        [[nodiscard]] Json::Error parseGraph() noexcept;
+        [[nodiscard]] Json::Error parseGraphNumVertices() noexcept;
+        [[nodiscard]] Json::Error parseGraphEdges() noexcept;
+        [[nodiscard]] Json::Error parseGraphLabels() noexcept;
+        [[nodiscard]] Json::Error parseInput() noexcept;
+
+        class Iterator {
+            Parser *m_parser;
+            uint16_t m_index;
+            uint8_t m_priority;
+
+            private:
+            void advance() noexcept {
+                while ( m_priority < Parser::NUM_EVENTS &&
+                        m_index >= m_parser -> m_eventCounts[ m_priority ] ) {
+                    m_priority++;
+                    m_index = 0;
+                }
+            }
+
+            public:
+            Iterator( Parser * parser, uint16_t index, uint8_t priority )
+                : m_parser( parser ), m_index( index ), m_priority( priority )
+            {
+                advance();
+            }
+
+            ParserEvent &operator*() const noexcept  {
+                return m_parser -> m_eventQueue[ m_priority ][ m_index ];
+            }
+
+            Iterator& operator++() noexcept  {
+                m_index++;
+                advance();
+                return *this;
+            }
+
+            bool operator!=( const Iterator &other ) const noexcept {
+                return m_parser != other.m_parser || m_index != other.m_index || m_priority != other.m_priority;
+            }
+
+        };
+        
         public:
-            /* Parser can only be constructed via fd.                         */
-            Parser( Utils::Job &job ) : job( job ), lexer( job ) {}
 
-            Parser( const Parser &other ) = delete;
-            Parser( Parser &&other ) = delete;
-            Parser &operator=( const Parser &other ) = delete;
-            Parser &operator=( Parser &&other ) = delete;
+        [[nodiscard]] Json::Error parse() noexcept;
 
-            ~Parser(){ /* Parser should not own anything. */ }
-            void parse();
+        Parser( Lexer &lexer )
+            : m_lexer( lexer ){}
 
+        Parser( const Parser &other ) noexcept = delete;
+        Parser( Parser &other ) noexcept = delete;
+
+        Iterator begin() noexcept {
+            return Iterator( this, 0, 0 );
+        }
+
+        Iterator end() noexcept {
+            return Iterator( this, 0, NUM_EVENTS );
+        }
+
+        auto getStringCount() const noexcept -> std::size_t 
+        {
+            return m_stringTable.size();
+        }
+
+        auto releaseStrings() noexcept -> std::vector< std::string >&&
+        {
+            return std::move( m_stringTable );
+        }
+
+        void operator=( const Parser &other ) noexcept = delete;
+        void operator=( Parser &&other ) noexcept = delete;
     };
 };
+

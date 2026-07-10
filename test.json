@@ -1,0 +1,10 @@
+{
+    "jobType": "compute",
+    "algorithm": "BFS",
+    "graph": {
+        "numVertices": 1,
+        "edges": [],
+        "labels": []
+    },
+    "input": [ 1 ]
+}

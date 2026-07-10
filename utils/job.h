@@ -11,32 +11,32 @@
 
 #pragma once
 
-#include <cstdint>
-#include "jsonParser/object.h"
-#include <memory>
-#include "ownedFd.h"
+#include "utils/managedFd.h"
+#include <sys/types.h>
 #include <unistd.h>
 #include <utility>
 
 namespace Utils {
     class Job {
         private:
-            OwnedFd readFd;
-            int writeFd;
+            ManagedFd m_readFd;
+            int m_writeFd;
 
         public:
-            std::unique_ptr< Json::Object > json;
 
-            Job( int readFd, int writeFd, bool ownsReadFd ) noexcept
-                : readFd( readFd, ownsReadFd  ),
-                  writeFd( writeFd ),
-                  json( nullptr )
+            Job( OwnedFd readFd, int writeFd ) noexcept
+                : m_readFd( readFd  ),
+                  m_writeFd( writeFd )
+            {}
+
+            Job( BorrowedFd readFd, int writeFd ) noexcept
+                : m_readFd( readFd  ),
+                  m_writeFd( writeFd )
             {}
 
             Job( Job &&other ) noexcept
-                : readFd( std::move( other.readFd ) ),
-                  writeFd( std::exchange( other.writeFd, -1 ) ),
-                  json( std::move( other.json ) )
+                : m_readFd( std::move( other.m_readFd ) ),
+                  m_writeFd( std::exchange( other.m_writeFd, -1 ) )
             {}
 
 
@@ -47,9 +47,8 @@ namespace Utils {
                 if ( this == &other )
                     return *this;
 
-                readFd = std::move( other.readFd );
-                writeFd = std::exchange( other.writeFd, -1 );
-                json = std::move( other.json );
+                m_readFd = std::move( other.m_readFd );
+                m_writeFd = std::exchange( other.m_writeFd, -1 );
 
                 return *this;
             }
@@ -57,14 +56,14 @@ namespace Utils {
             Job( const Job &other ) = delete;
             Job &operator=( const Job &other ) = delete;
 
-            int read( void *buff, const size_t size ) noexcept
+            [[nodiscard]] ssize_t read( void *buff, const size_t size ) noexcept
             {
-                return ::read( readFd.get(), buff, size );
+                return ::read( m_readFd.get(), buff, size );
             }
 
-            int write( const void *buff, const size_t size ) noexcept
+            [[nodiscard]] ssize_t write( const void *buff, const size_t size ) noexcept
             {
-                return ::write( writeFd, buff, size );
+                return ::write( m_writeFd, buff, size );
             }
     };
 

@@ -14,8 +14,8 @@ CXXFLAGS := -g -std=c++23 -I..\
             -Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
             -Woverloaded-virtual -Wredundant-decls
-OBJECTS := lexer.o parser.o
-ARCHIVE := jsonParser.a
+OBJECTS := jobPipeline.o
+ARCHIVE := jobTools.a
 
 all: $(ARCHIVE)
 

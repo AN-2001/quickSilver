@@ -1,121 +1,167 @@
-/******************************************************************************\
-*  token.h                                                                     *
-*                                                                              *
-*  Header for representing tokens that the lexer will emit.                    *
-*                                                                              *
-*              Written by A.N.                                  23-04-2026     *
-*                                                                              *
-\******************************************************************************/
+#include <cstdint>
+#include <string_view>
+#include <utility>
+#include <utils/fastMap.h>
+#include <optional>
 
 #pragma once
 
-#include "jsonParser/exceptions.h"
-#include <string>
-#include <variant>
-
 namespace Json {
-    struct Token {
-        enum class Type {
-            Eof,
-            Null,
-            Number,
-            String,
-            Boolean,
-            LeftBrace,
-            RightBrace,
-            LeftBracket,
-            RightBracket,
-            Colon,
-            Comma
-        };
 
-        using Value =
-            std::variant< std::monostate,
-                          double,
-                          bool,
-                          std::string >;
-
-        Type type;
-        Value value;
-
-        Token( Type type )
-            : type( type ), value( std::monostate{} )
-            {}
-
-        Token( double number )
-            : type( Type::Number ), value( number  )
-            {}
-
-        Token( bool boolean )
-            : type( Type::Boolean ), value( boolean )
-            {}
-
-        Token( const std::string &string )
-            : type( Type::String ), value( string )
-            {}
-
-        bool operator==( Token::Type other ) const { 
-            return type == other;
-        }
-
-        bool operator!=( Token::Type other ) const {
-            return type != other;
-        }
-
-        bool takeBoolean() 
-        {
-            if ( !std::holds_alternative< bool >( value ) )
-                throw JsonException( "Token does not contain a boolean" );
-            return std::get< bool > ( value );
-        }
-
-        double takeNumber()
-        {
-            if ( !std::holds_alternative< double >( value ) )
-                throw JsonException( "Token does not contain a number" );
-            return std::get< double > ( value );
-        }
-
-        std::string takeString() 
-        {
-            if ( !std::holds_alternative< std::string >( value ) )
-                throw JsonException( "Token does not contain a string" );
-            return std::move( std::get< std::string > ( value ) );
-        }
-
-        operator std::string() const {
-
-            switch( type ) {
-                case Type::Eof:
-                    return "EOF";
-                case Type::Null:
-                    return "NULL";
-                case Type::String:
-                    return "STRING < " + std::get< std::string > ( value ) + " >";
-                case Type::Number:
-                    return "NUMBER < " + std::to_string( std::get< double > ( value ) ) + " >" ;
-                case Type::Boolean:
-                    return "BOOLEAN < " + std::string(std::get< bool > ( value ) ? "true" : "false") + " >" ;
-                case Type::LeftBrace:
-                    return "LEFT_BRACE";
-                case Type::RightBrace:
-                    return "RIGHT_BRACE";
-                case Type::LeftBracket:
-                    return "LEFT_BRACKET";
-                case Type::RightBracket:
-                    return "RIGHT_BRACKET";
-                case Type::Comma:
-                    return "COMMA";
-                case Type::Colon:
-                    return "COLON";
-            }
-
-            return "";
-        }
-
+    enum class Token : std::uint8_t
+    {
+        JobType,
+        Metrics,
+        Compute,
+        Algorithm,
+        NumVertices,
+        Edges,
+        Graph,
+        Input,
+        Labels,
+        Dfs,
+        Bfs,
+        Number,
+        Label,
+        LeftBracket,
+        RightBracket,
+        LeftBrace,
+        RightBrace,
+        Comma,
+        Colon,
+        Null,
+        True,
+        False,
+        Eof,
+        NumTokens,
     };
 
-    std::string tokenTypeToString( Token::Type type );
 
-}
+    [[nodiscard]] constexpr auto buildGraphKeywordsMapping() noexcept 
+    {
+        using namespace std::string_view_literals;
 
+        Utility::FastMap<std::string_view, Token, 11 > map;
+
+        map.add( "jobType"sv, Token::JobType );
+        map.add( "metrics"sv, Token::Metrics );
+        map.add( "compute"sv, Token::Compute );
+        map.add( "algorithm"sv, Token::Algorithm );
+        map.add( "numVertices"sv, Token::NumVertices );
+        map.add( "edges"sv, Token::Edges );
+        map.add( "graph"sv, Token::Graph );
+        map.add( "input"sv, Token::Input );
+        map.add( "labels"sv, Token::Labels );
+        map.add( "DFS"sv, Token::Dfs );
+        map.add( "BFS"sv, Token::Bfs );
+        return map;
+    }
+
+    [[nodiscard]] constexpr auto buildJsonKeywordsMapping() noexcept 
+    {
+        using namespace std::string_view_literals;
+
+        Utility::FastMap<std::string_view, Token, 3 > map;
+
+        map.add( "false"sv, Token::False );
+        map.add( "true"sv, Token::True );
+        map.add( "null"sv, Token::Null );
+        return map;
+    }
+
+    [[nodiscard]] constexpr auto buildTokenMapping() noexcept
+    {
+        using namespace std::string_view_literals;
+
+        Utility::FastMap<Token, std::string_view, std::to_underlying( Token::NumTokens ) > map;
+
+        map.add( Token::JobType, "job type"sv );
+        map.add( Token::Metrics, "metrics"sv );
+        map.add( Token::Compute, "compute"sv );
+        map.add( Token::Algorithm, "algorithm"sv );
+        map.add( Token::NumVertices, "numVertices"sv );
+        map.add( Token::Edges, "edges"sv );
+        map.add( Token::Graph, "graph"sv );
+        map.add( Token::Input, "input"sv );
+        map.add( Token::Labels, "labels"sv );
+        map.add( Token::Dfs, "dfs"sv );
+        map.add( Token::Bfs, "bfs"sv );
+        map.add( Token::Number, "number"sv );
+        map.add( Token::Label, "label"sv );
+        map.add( Token::LeftBracket, "left bracket"sv );
+        map.add( Token::RightBracket, "right bracket"sv );
+        map.add( Token::LeftBrace, "left brace"sv );
+        map.add( Token::RightBrace, "right brace"sv );
+        map.add( Token::Comma, "comma"sv );
+        map.add( Token::Colon, "colon"sv );
+        map.add( Token::Null, "null"sv );
+        map.add( Token::True, "true"sv );
+        map.add( Token::False, "false"sv );
+        map.add( Token::Eof, "EOF"sv );
+        return map;
+    }
+
+    [[nodiscard]] constexpr std::optional<std::string_view> tokenToString( Token token ) noexcept {
+        static constexpr auto mapping = buildTokenMapping();
+        if ( !mapping.exists( token ) ) return std::nullopt;
+        return mapping.get( token );
+    }
+
+    [[nodiscard]] constexpr std::optional<Token> graphKeywordToToken( std::string_view str ) noexcept
+    {
+        static constexpr auto mapping = buildGraphKeywordsMapping();
+        if ( !mapping.exists( str ) ) return std::nullopt;
+        return mapping.get( str );
+    }
+
+    [[nodiscard]] constexpr std::optional<Token> jsonKeywordToToken( std::string_view str ) noexcept
+    {
+        static constexpr auto mapping = buildJsonKeywordsMapping();
+        if ( !mapping.exists( str ) ) return std::nullopt;
+        return mapping.get( str );
+    }
+
+    struct TokenWrapper {
+        Token m_type{};
+        float m_numericValue{};
+        std::string_view m_labelValue{};
+        std::string repr{};
+
+        TokenWrapper( Token type ) : m_type( type ) {}
+        TokenWrapper( float numeric ) : m_type( Token::Number ), m_numericValue( numeric ) {}
+        TokenWrapper( std::string_view label ) : m_type( Token::Label ), m_labelValue( label ) {}
+
+        [[nodiscard]] constexpr std::string_view getLabelValue() const noexcept 
+        {
+            /* No assert on this! watch out!!! */
+            return m_labelValue;
+        }
+
+        [[nodiscard]] constexpr float getNumericValue() const noexcept 
+        {
+            /* No assert on this! watch out!!! */
+            return m_numericValue;
+        }
+
+        [[nodiscard]] constexpr bool operator==( Token t ) const noexcept 
+        {
+            return m_type == t;
+        }
+
+        [[nodiscard]] constexpr std::optional< std::string_view > toString() noexcept 
+        {
+            if ( !repr.empty() )
+                return repr;
+            auto name = tokenToString( m_type );
+            if ( !name )
+                return std::nullopt;
+            repr = *name;
+            if ( m_type == Token::Number )
+                repr += "(" + std::to_string( m_numericValue ) + ")";
+            if ( m_type == Token::Label )
+                repr += "(" + std::string( m_labelValue ) + ")";
+            return repr;
+        }
+    };
+
+};

@@ -1,0 +1,2 @@
+CompileFlags:
+  Add: [--gcc-toolchain=/home/amber/gcc-trunk]
