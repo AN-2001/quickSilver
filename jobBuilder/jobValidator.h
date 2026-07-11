@@ -1,6 +1,7 @@
 #pragma once
 
 #include "jobParser/parserEvents.h"
+#include "jobParser/token.h"
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -138,21 +139,39 @@ namespace JobTools {
             {
                 switch ( event.m_type ) {
                     case Json::ParserEventType::SetJobType:
+                        if ( event.m_ident0 != std::to_underlying( Json::Token::Compute ) && event.m_ident0 != std::to_underlying( Json::Token::Metrics ) )
+                            return false;
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         return true;
                     case Json::ParserEventType::SetAlgorithm:
+
+                        if ( event.m_ident0 != std::to_underlying( Json::Token::Bfs ) && event.m_ident0 != std::to_underlying( Json::Token::Dfs ) )
+                            return false;
+                        if ( event.m_ident1 != 0 )
+                            return false;
+
                         return true;
                     case Json::ParserEventType::SetInputCount:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         state.numInputs = event.m_ident0;
                         return true;
                     case Json::ParserEventType::AddInput:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         if ( state.currentInput >= state.numInputs )
                             return false;
                         state.currentInput++;
                         return true;
                     case Json::ParserEventType::SetVertexCount:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         state.numVertices = event.m_ident0;
                         return true;
                     case Json::ParserEventType::SetEdgeCount:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         state.numEdges = event.m_ident0;
                         return true;
                     case Json::ParserEventType::AddEdge:
@@ -165,9 +184,13 @@ namespace JobTools {
                             return false;
                         return true;
                     case Json::ParserEventType::SetLabelCount:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         state.numLabels = event.m_ident0;
                         return true;
                     case Json::ParserEventType::AddLabel:
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         if ( state.currentLabel >= state.numLabels )
                             return false;
                         state.currentLabel++;
@@ -176,6 +199,10 @@ namespace JobTools {
                             return false;
                         return true;
                     case Json::ParserEventType::Finish:
+                        if ( event.m_ident0 != 0 )
+                            return false;
+                        if ( event.m_ident1 != 0 )
+                            return false;
                         if ( state.currentInput != state.numInputs )
                             return false;
                         if ( state.currentEdge != state.numEdges )

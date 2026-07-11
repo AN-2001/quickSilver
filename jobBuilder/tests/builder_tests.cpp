@@ -182,6 +182,97 @@ static const BuilderTestCase BuilderTests[] = {
             .strings = { "Chicago", "Los Angeles" }
         }
     },
+    {
+    .name = "test_complex",
+    .input = { 3,
+        { "Chicago", "Los Angeles", "New York" },
+        Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
+        Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
+        Json::ParserEvent( Json::ParserEventType::SetInputCount, 3 ),
+        Json::ParserEvent( Json::ParserEventType::AddInput, 0 ),
+        Json::ParserEvent( Json::ParserEventType::AddInput, 1 ),
+        Json::ParserEvent( Json::ParserEventType::AddInput, 2 ),
+
+        Json::ParserEvent( Json::ParserEventType::SetVertexCount, 8 ),
+        Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 17 ),
+
+        // 0 -> 1,2,3
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 2 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 3 ),
+
+        // 1 -> 4,5
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 1, 4 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 1, 5 ),
+
+        // 2 -> 5,6
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 2, 5 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 2, 6 ),
+
+        // 3 -> 6
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 3, 6 ),
+
+        // 4 -> 7,0 (cycle)
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 4, 7 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 4, 0 ),
+
+        // 5 -> 7,2,3 (cross edges)
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 5, 7 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 5, 2 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 5, 3 ),
+
+        // 6 -> 4,1
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 6, 4 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 6, 1 ),
+
+        // 7 -> 0,6
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 7, 0 ),
+        Json::ParserEvent( Json::ParserEventType::AddEdge, 7, 6 ),
+
+        Json::ParserEvent( Json::ParserEventType::SetLabelCount, 3 ),
+        Json::ParserEvent( Json::ParserEventType::AddLabel, 0 ),
+        Json::ParserEvent( Json::ParserEventType::AddLabel, 1 ),
+        Json::ParserEvent( Json::ParserEventType::AddLabel, 2 ),
+
+        Json::ParserEvent( Json::ParserEventType::Finish ),
+    },
+    .expected = {
+        .type = JobTools::JobType::Compute,
+        .algorithm = JobTools::AlgorithmType::BFS,
+        .numInputs = 3,
+        .inputs = { 0, 1, 2 },
+        .graph = {
+            .numVertices = 8,
+
+            // CSR adjacency:
+            // v0: 1,2,3
+            // v1: 4,5
+            // v2: 5,6
+            // v3: 6
+            // v4: 7,0
+            // v5: 7,2,3
+            // v6: 4,1
+            // v7: 0,6
+            .adj = {
+                1, 2, 3,
+                4, 5,
+                5, 6,
+                6,
+                7, 0,
+                7, 2, 3,
+                4, 1,
+                0, 6
+            },
+
+            .offsets = {
+                0, 3, 5, 7, 8, 10, 13, 15
+            },
+
+            .labels = { 0, 1, 2 }
+        },
+        .strings = { "Chicago", "Los Angeles", "New York" }
+    }
+    },
 };
 
 INSTANTIATE_TEST_SUITE_P (

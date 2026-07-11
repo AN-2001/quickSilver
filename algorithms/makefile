@@ -14,7 +14,7 @@ CXXFLAGS := -g -std=c++23 -I..\
             -Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
             -Woverloaded-virtual -Wredundant-decls
-OBJECTS := bfs.o 
+OBJECTS := bfs.o dfs.o
 ARCHIVE := algorithms.a
 
 all: $(ARCHIVE)

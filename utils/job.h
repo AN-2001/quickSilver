@@ -12,6 +12,7 @@
 #pragma once
 
 #include "utils/managedFd.h"
+#include "jobBuilder/jobBuilder.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <utility>
@@ -23,6 +24,8 @@ namespace Utils {
             int m_writeFd;
 
         public:
+
+            JobTools::JobState m_jobState;
 
             Job( OwnedFd readFd, int writeFd ) noexcept
                 : m_readFd( readFd  ),

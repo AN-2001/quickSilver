@@ -18,5 +18,6 @@ int main()
         return 1;
 
     JobTools::Builder builder( parser );
-    auto builtJob = builder.build();
+    job.m_jobState = builder.build();
+
 }
