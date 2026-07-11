@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <utility>
 
-namespace Utility {
+namespace Utils {
     template < typename Key, typename Value, std::size_t N = 16 >
     class FastMap {
         std::array< std::pair< Key, Value >, N > inner;

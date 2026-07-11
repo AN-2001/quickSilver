@@ -41,7 +41,7 @@ namespace Json {
     {
         using namespace std::string_view_literals;
 
-        Utility::FastMap<std::string_view, Token, 11 > map;
+        Utils::FastMap<std::string_view, Token, 11 > map;
 
         map.add( "jobType"sv, Token::JobType );
         map.add( "metrics"sv, Token::Metrics );
@@ -61,7 +61,7 @@ namespace Json {
     {
         using namespace std::string_view_literals;
 
-        Utility::FastMap<std::string_view, Token, 3 > map;
+        Utils::FastMap<std::string_view, Token, 3 > map;
 
         map.add( "false"sv, Token::False );
         map.add( "true"sv, Token::True );
@@ -73,7 +73,7 @@ namespace Json {
     {
         using namespace std::string_view_literals;
 
-        Utility::FastMap<Token, std::string_view, std::to_underlying( Token::NumTokens ) > map;
+        Utils::FastMap<Token, std::string_view, std::to_underlying( Token::NumTokens ) > map;
 
         map.add( Token::JobType, "job type"sv );
         map.add( Token::Metrics, "metrics"sv );

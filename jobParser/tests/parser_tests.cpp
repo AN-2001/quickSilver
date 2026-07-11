@@ -38,7 +38,7 @@ TEST_P(ParserTest, ProducesExpectedEvents) {
     if ( devNull < 0 ) 
         FAIL() << "Could not open /dev/null";
 
-    Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, devNull );
+    Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, Utils::BorrowedFd{ devNull } );
     Json::Lexer lexer( mockJob );
     Json::Parser parser( lexer );
 
@@ -414,6 +414,40 @@ static const ParserTestCase ParserTests[] = {
         )JSON",
         .expected = {
             Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 0 ),
+            Json::ParserEvent( Json::ParserEventType::Finish )
+        },
+        .labels = {
+        },
+        .expectedError = Json::Error::NoError
+    },
+    {
+        .name = "test_sorted_edges",
+        .json = R"JSON(
+            { 
+                "graph": {
+                    "edges": [
+                        [ 3, 4 ],
+                        [ 1, 2 ],
+                        [ 5, 2 ],
+                        [ 0, 1 ],
+                        [ 2, 3 ],
+                        [ 10, 11 ],
+                        [ 0, 5 ],
+                        [ 4, 4 ]
+                    ]
+                }
+            }
+        )JSON",
+        .expected = {
+            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 8 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 5 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 1, 2 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 2, 3 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 3, 4 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 4, 4 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 5, 2 ),
+            Json::ParserEvent( Json::ParserEventType::AddEdge, 10, 11 ),
             Json::ParserEvent( Json::ParserEventType::Finish )
         },
         .labels = {

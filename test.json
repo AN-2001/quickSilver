@@ -2,9 +2,9 @@
     "jobType": "compute",
     "algorithm": "BFS",
     "graph": {
-        "numVertices": 1,
-        "edges": [ [ 0, 0 ] ],
-        "labels": [ "hello" ]
+        "numVertices": 3,
+        "edges": [ [ 0, 1 ], [ 1, 2 ] ],
+        "labels": [ "hello", "bye" ]
     },
-    "input": [ 1 ]
+    "input": [ 0 ]
 }

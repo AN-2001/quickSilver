@@ -21,25 +21,25 @@ namespace Utils {
     class Job {
         private:
             ManagedFd m_readFd;
-            int m_writeFd;
+            ManagedFd m_writeFd;
 
         public:
 
             JobTools::JobState m_jobState;
 
-            Job( OwnedFd readFd, int writeFd ) noexcept
+            Job( OwnedFd readFd, BorrowedFd writeFd ) noexcept
                 : m_readFd( readFd  ),
                   m_writeFd( writeFd )
             {}
 
-            Job( BorrowedFd readFd, int writeFd ) noexcept
+            Job( BorrowedFd readFd, BorrowedFd writeFd ) noexcept
                 : m_readFd( readFd  ),
                   m_writeFd( writeFd )
             {}
 
             Job( Job &&other ) noexcept
                 : m_readFd( std::move( other.m_readFd ) ),
-                  m_writeFd( std::exchange( other.m_writeFd, -1 ) )
+                  m_writeFd( std::move( other.m_writeFd ) )
             {}
 
 
@@ -51,7 +51,7 @@ namespace Utils {
                     return *this;
 
                 m_readFd = std::move( other.m_readFd );
-                m_writeFd = std::exchange( other.m_writeFd, -1 );
+                m_writeFd = std::move( other.m_writeFd );
 
                 return *this;
             }
@@ -66,7 +66,7 @@ namespace Utils {
 
             [[nodiscard]] ssize_t write( const void *buff, const size_t size ) noexcept
             {
-                return ::write( m_writeFd, buff, size );
+                return ::write( m_writeFd.get(), buff, size );
             }
     };
 

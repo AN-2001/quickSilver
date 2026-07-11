@@ -22,7 +22,7 @@ namespace Json {
     {
         using namespace std::string_view_literals;
 
-        Utility::FastMap< Json::Error, std::string_view, std::to_underlying( Error::NumErrors ) > map;
+        Utils::FastMap< Json::Error, std::string_view, std::to_underlying( Error::NumErrors ) > map;
 
         map.add( Error::NoError, "no error"sv );
         map.add( Error::UnexpectedToken, "unexpected token"sv );

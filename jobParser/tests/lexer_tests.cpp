@@ -37,7 +37,7 @@ TEST_P(LexerTest, ProducesExpectedTokens) {
     if ( devNull < 0 ) 
         FAIL() << "Could not open /dev/null";
 
-    Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, devNull );
+    Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, Utils::BorrowedFd{ devNull } );
     Json::Lexer lexer( mockJob );
 
     ssize_t written;

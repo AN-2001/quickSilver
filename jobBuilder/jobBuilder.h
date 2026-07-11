@@ -25,7 +25,7 @@ namespace JobTools {
     struct GraphCsr {
         std::size_t numVertices;
         std::vector< uint16_t > adj;
-        std::vector< int > offsets;
+        std::vector< uint16_t > offsets;
         std::vector< uint16_t > labels;
     };
 
@@ -77,7 +77,7 @@ namespace JobTools {
                         break;
                     case Json::ParserEventType::SetVertexCount:
                         job.graph.numVertices = event.m_ident0;
-                        job.graph.offsets = std::vector( job.graph.numVertices + 1, 0 );
+                        job.graph.offsets = std::vector<uint16_t>( job.graph.numVertices + 1, 0 );
                         break;
                     case Json::ParserEventType::SetEdgeCount:
                         job.graph.adj.reserve( event.m_ident0 );

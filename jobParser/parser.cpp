@@ -435,6 +435,8 @@ Json::Error Json::Parser::parse() noexcept
     std::sort( m_eventQueue[ addEdgeIndex ].begin(),
                m_eventQueue[ addEdgeIndex ].begin() + m_eventCounts[ addEdgeIndex ],
                []( const auto &e0, const auto &e1 ) -> bool {
+                    if ( e0.m_ident0 == e1.m_ident0 )
+                        return e0.m_ident1 < e1.m_ident1;
                     return e0.m_ident0 < e1.m_ident0;
                });
 
