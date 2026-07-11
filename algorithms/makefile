@@ -1,11 +1,6 @@
+MAKE := make
 CXX := g++
-
-ARCHIVE := ../jsonParser.a
-
-GTEST_LIBS := -L../../deps/googletest/build/lib
-GTEST_INCLUDE := -isystem ../../deps/googletest/googletest/include
-
-CXXFLAGS := -g -std=c++23 -I../.. $(GTEST_INCLUDE) \
+CXXFLAGS := -g -std=c++23 -I..\
             -Wall -Wextra -Wpedantic \
             -Wshadow -Wconversion -Wsign-conversion \
             -Wold-style-cast -Wuseless-cast \
@@ -19,20 +14,20 @@ CXXFLAGS := -g -std=c++23 -I../.. $(GTEST_INCLUDE) \
             -Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
             -Woverloaded-virtual -Wredundant-decls
+OBJECTS := bfs.o 
+ARCHIVE := algorithms.a
 
-LDFLAGS := $(GTEST_LIBS)
-LDLIBS := -lgtest_main -lgtest -pthread
+all: $(ARCHIVE)
 
-SRCS := $(wildcard *.cpp)
-TARGET := runTests
+$(ARCHIVE): $(OBJECTS)
+	ar rcs $(ARCHIVE) $(OBJECTS)
+	+$(MAKE) -C ./tests
 
-all: $(TARGET)
+%.o: %.cpp
+	$(CXX) -c $(CXXFLAGS) $< -o $@
 
-$(TARGET): $(SRCS) $(ARCHIVE)
-	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) $(LDLIBS) -o $@
-
-
-.PHONY: clean
+.PHONY: all clean
 
 clean:
-	@rm -f $(TARGET) 
+	@rm -f $(ARCHIVE) $(OBJECTS) 
+	$(MAKE) -C ./tests clean

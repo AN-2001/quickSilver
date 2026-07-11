@@ -1,7 +1,7 @@
 #pragma once
 
-#include "jsonParser/token.h"
-#include "jsonParser/errors.h"
+#include "jobParser/token.h"
+#include "jobParser/errors.h"
 #include "utils/job.h"
 
 #include <array>

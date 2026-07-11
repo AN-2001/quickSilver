@@ -8,10 +8,10 @@
 #include <fcntl.h>
 #include <utility>
 
-#include "jsonParser/errors.h"
-#include "jsonParser/lexer.h"
-#include "jsonParser/parser.h"
-#include "jsonParser/parserEvents.h"
+#include "jobParser/errors.h"
+#include "jobParser/lexer.h"
+#include "jobParser/parser.h"
+#include "jobParser/parserEvents.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 

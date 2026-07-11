@@ -1,5 +1,5 @@
 CXX := g++
-SUBSYSTEMS := jsonParser jobTools
+SUBSYSTEMS := jobParser jobBuilder algorithms
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
 OBJECTS := main.o
 CXXFLAGS := -g -std=c++23 -I. \
@@ -16,11 +16,12 @@ CXXFLAGS := -g -std=c++23 -I. \
 			-Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
 			-Wctor-dtor-privacy -Wnon-virtual-dtor \
 			-Woverloaded-virtual -Wredundant-decls
-PROJ := graphToys
+PROJ := quicksilver
 
 all: $(PROJ)
+	+$(MAKE) -C ./tests
 
-graphToys: $(OBJECTS) $(SUBSYSTEMS)
+$(PROJ): $(OBJECTS) $(SUBSYSTEMS)
 	$(CXX) $(OBJECTS) $(LIBS) -o $@
 
 $(SUBSYSTEMS):
@@ -34,3 +35,4 @@ $(SUBSYSTEMS):
 clean:
 	@rm -f $(OBJECTS) $(PROJ)
 	$(foreach s,$(SUBSYSTEMS),$(MAKE) -C $(s) clean;)
+	$(MAKE) -C ./tests clean

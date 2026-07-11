@@ -1,48 +1,18 @@
-#include <concepts>
-#include <cstddef>
 #include <gtest/gtest.h>
 
-#include "jobTools/jobValidator.h"
+#include "jobBuilder/jobValidator.h"
 #include <string>
 
 #include <sys/types.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <utility>
-#include <vector>
+#include "eventWrapper.h"
 
-#include "jsonParser/parserEvents.h"
-#include "jsonParser/token.h"
+#include "jobParser/parserEvents.h"
+#include "jobParser/token.h"
 
 using namespace std::literals::string_view_literals;
-
-struct EventWrapper {
-
-    std::size_t m_stringCounts;
-    std::vector< Json::ParserEvent > m_inputSequence;
-
-    public:
-
-    template < std::same_as< Json::ParserEvent >... Events >
-    EventWrapper(std::size_t counts,
-                 Events &&...events)
-        : m_stringCounts(counts),
-          m_inputSequence{std::forward<Events>( events )...}
-    {}
-
-    [[nodiscard]] auto begin() const noexcept {
-        return m_inputSequence.begin();
-    }
-
-    [[nodiscard]] auto end() const noexcept {
-        return m_inputSequence.end();
-    }
-
-    [[nodiscard]] std::size_t getStringCount() const noexcept {
-        return m_stringCounts;
-    }
-
-};
 
 struct ValidatorTestCase {
     const char *name;
@@ -155,14 +125,6 @@ static const ValidatorTestCase ValidatorTests[] = {
         .name = "test_early_finish_0",
         .input = { 0,
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
-            Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
-            Json::ParserEvent( Json::ParserEventType::SetInputCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
-            Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -171,13 +133,6 @@ static const ValidatorTestCase ValidatorTests[] = {
         .input = { 0,
             Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
-            Json::ParserEvent( Json::ParserEventType::SetInputCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
-            Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -187,12 +142,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
             Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetInputCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
-            Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -203,11 +152,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
             Json::ParserEvent( Json::ParserEventType::SetInputCount, 1 ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
-            Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -219,10 +163,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::SetInputCount, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -235,9 +175,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::AddInput, 5 ),
             Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -251,8 +188,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::SetVertexCount, 2 ),
             Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },
@@ -267,7 +202,6 @@ static const ValidatorTestCase ValidatorTests[] = {
             Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
             Json::ParserEvent( Json::ParserEventType::Finish ),
-            Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ),
         },
         .expected = false
     },

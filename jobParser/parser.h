@@ -1,6 +1,6 @@
 #pragma once
 
-#include "jsonParser/errors.h"
+#include "jobParser/errors.h"
 #include "lexer.h"
 #include <array>
 #include <cstdint>

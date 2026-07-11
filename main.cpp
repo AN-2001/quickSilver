@@ -1,6 +1,7 @@
-#include "jobTools/jobValidator.h"
-#include "jsonParser/lexer.h"
-#include "jsonParser/parser.h"
+#include "jobBuilder/jobValidator.h"
+#include "jobBuilder/jobBuilder.h"
+#include "jobParser/lexer.h"
+#include "jobParser/parser.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 #include <print>
@@ -13,8 +14,9 @@ int main()
     JobTools::Validator validator( parser );
     std::println( "Error was: {}", Json::errorToString( parser.parse() ) );
 
-    if ( !validator.validate() ) {
-        std::println( "JOB IS INVALID" );
-    } else
-        std::println( "JOB IS VALID" );
+    if ( !validator.validate() )
+        return 1;
+
+    JobTools::Builder builder( parser );
+    auto builtJob = builder.build();
 }

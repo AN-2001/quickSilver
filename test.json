@@ -3,8 +3,8 @@
     "algorithm": "BFS",
     "graph": {
         "numVertices": 1,
-        "edges": [],
-        "labels": []
+        "edges": [ [ 0, 0 ] ],
+        "labels": [ "hello" ]
     },
     "input": [ 1 ]
 }

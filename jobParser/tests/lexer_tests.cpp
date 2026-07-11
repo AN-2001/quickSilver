@@ -7,9 +7,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
-#include "jsonParser/errors.h"
-#include "jsonParser/lexer.h"
-#include "jsonParser/token.h"
+#include "jobParser/errors.h"
+#include "jobParser/lexer.h"
+#include "jobParser/token.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 
