@@ -1,5 +1,5 @@
 CXX := g++
-SUBSYSTEMS := jobParser jobBuilder algorithms connections
+SUBSYSTEMS := jobBuilder jobParser algorithms connections
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
 OBJECTS := main.o
 CXXFLAGS := -g -std=c++23 -I. \

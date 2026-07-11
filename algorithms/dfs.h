@@ -18,7 +18,7 @@ namespace Algorithms {
         NumErrors,
     };
 
-    static consteval auto buildErrorMapping() 
+    static consteval auto buildDfsErrorMapping() 
     {
         constexpr std::size_t NUM_ERRORS = std::to_underlying( DfsErrorType::NumErrors );
         Utils::FastMap< DfsErrorType , std::string_view, NUM_ERRORS > map{};
@@ -31,7 +31,7 @@ namespace Algorithms {
     }
 
     class Dfs {
-        static constexpr auto m_errorStrings = buildErrorMapping();
+        static constexpr auto m_errorStrings = buildDfsErrorMapping();
 
         const JobTools::GraphCsr &m_graph;
         int m_source;

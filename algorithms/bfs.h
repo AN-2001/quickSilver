@@ -18,7 +18,7 @@ namespace Algorithms {
         NumErrors,
     };
 
-    static consteval auto buildErrorMapping() 
+    static consteval auto buildBfsErrorMapping() 
     {
         constexpr std::size_t NUM_ERRORS = std::to_underlying( BfsErrorType::NumErrors );
         Utils::FastMap< BfsErrorType , std::string_view, NUM_ERRORS > map{};
@@ -31,7 +31,7 @@ namespace Algorithms {
     }
 
     class Bfs {
-        static constexpr auto m_errorStrings = buildErrorMapping();
+        static constexpr auto m_errorStrings = buildBfsErrorMapping();
 
         const JobTools::GraphCsr &m_graph;
         int m_source;
