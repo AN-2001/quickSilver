@@ -77,16 +77,15 @@ namespace JobTools {
                         break;
                     case Json::ParserEventType::SetVertexCount:
                         job.graph.numVertices = event.m_ident0;
-                        job.graph.offsets = std::vector( job.graph.numVertices, -1 );
+                        job.graph.offsets = std::vector( job.graph.numVertices + 1, 0 );
                         break;
                     case Json::ParserEventType::SetEdgeCount:
                         job.graph.adj.reserve( event.m_ident0 );
                         break;
                     case Json::ParserEventType::AddEdge:
-                        if ( event.m_ident0 != aux.currentSrcVertex )
-                            job.graph.offsets[ event.m_ident0 ] = static_cast<uint16_t>( job.graph.adj.size() );
+                        for ( ; aux.currentSrcVertex != event.m_ident0; ++aux.currentSrcVertex )
+                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex + 1 ) ] = static_cast<uint16_t>( job.graph.adj.size() );
                         job.graph.adj.push_back( event.m_ident1 );
-                        aux.currentSrcVertex = event.m_ident0;
                         break;
                     case Json::ParserEventType::SetLabelCount:
                         job.graph.labels.reserve( event.m_ident0 );
@@ -97,6 +96,8 @@ namespace JobTools {
                     case Json::ParserEventType::EmptyEvent:
                     case Json::ParserEventType::NumEvents:
                     case Json::ParserEventType::Finish:
+                        for ( ; static_cast< std::size_t > ( aux.currentSrcVertex ) != job.graph.numVertices; ++aux.currentSrcVertex )
+                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex + 1 ) ] = static_cast<uint16_t>( job.graph.adj.size() );
                         break;
 
                     default:

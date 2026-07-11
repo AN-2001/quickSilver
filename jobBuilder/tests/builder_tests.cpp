@@ -78,7 +78,7 @@ static const BuilderTestCase BuilderTests[] = {
             .graph = {
                 .numVertices = 2,
                 .adj = { 1 },
-                .offsets = { 0, -1 },
+                .offsets = { 0, 1, 1 },
                 .labels = {}
             },
             .strings = {}
@@ -107,7 +107,7 @@ static const BuilderTestCase BuilderTests[] = {
             .graph = {
                 .numVertices = 3,
                 .adj = { 1, 2, 0 },
-                .offsets = { 0, -1, 2 },
+                .offsets = { 0, 2, 2, 3 },
                 .labels = {}
             },
             .strings = {}
@@ -140,7 +140,7 @@ static const BuilderTestCase BuilderTests[] = {
             .graph = {
                 .numVertices = 4,
                 .adj = { 1, 2, 3, 0, 2 },
-                .offsets = { 0, 2, 3, 4 },
+                .offsets = { 0, 2, 3, 4, 5 },
                 .labels = {}
             },
             .strings = {}
@@ -176,7 +176,7 @@ static const BuilderTestCase BuilderTests[] = {
             .graph = {
                 .numVertices = 4,
                 .adj = { 1, 2, 3, 0, 2 },
-                .offsets = { 0, 2, 3, 4 },
+                .offsets = { 0, 2, 3, 4, 5 },
                 .labels = { 0, 1 }
             },
             .strings = { "Chicago", "Los Angeles" }
@@ -265,7 +265,7 @@ static const BuilderTestCase BuilderTests[] = {
             },
 
             .offsets = {
-                0, 3, 5, 7, 8, 10, 13, 15
+                0, 3, 5, 7, 8, 10, 13, 15, 17
             },
 
             .labels = { 0, 1, 2 }
