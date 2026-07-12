@@ -41,7 +41,7 @@ void Algorithms::Dfs::serialize( Utils::Job &job ) noexcept
     Utils::Serializer serialize( job );
 
     if ( m_err != DfsErrorType::NoError ) {
-        serialize << R"JSON({"status":"error","error":")JSON";
+        serialize << R"JSON({"status":"DFS error","error":")JSON";
         serialize << m_errorStrings.get( m_err );
         serialize << R"JSON("})JSON";
         return;

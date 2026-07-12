@@ -75,7 +75,7 @@ static const DfsTestCase DfsTests[] = {
         },
         .numInputs = 2,
         .input = { 0, 0 },
-        .expected = R"json({"status":"error","error":"Invalid input count"})json"sv
+        .expected = R"json({"status":"DFS error","error":"Invalid input count"})json"sv
     },
     {
         .name = "test_bad_input",
@@ -87,7 +87,7 @@ static const DfsTestCase DfsTests[] = {
         },
         .numInputs = 1,
         .input = { 2 },
-        .expected = R"json({"status":"error","error":"Source is too big to be a vertex"})json"sv
+        .expected = R"json({"status":"DFS error","error":"Source is too big to be a vertex"})json"sv
     },
     {
         .name = "test_chain",
