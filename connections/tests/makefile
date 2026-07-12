@@ -1,6 +1,6 @@
 CXX := g++
 
-ARCHIVE := ../connections.a
+ARCHIVE := ../libconnections.a
 
 GTEST_LIBS := -L../../deps/googletest/build/lib
 GTEST_INCLUDE := -isystem ../../deps/googletest/googletest/include

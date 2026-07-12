@@ -15,7 +15,7 @@ CXXFLAGS := -g -std=c++23 -I..\
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
             -Woverloaded-virtual -Wredundant-decls
 OBJECTS := bfs.o dfs.o
-ARCHIVE := algorithms.a
+ARCHIVE := libalgorithms.a
 
 COVERAGE_FLAGS := --coverage -O0
 ifeq ($(COVERAGE),1)

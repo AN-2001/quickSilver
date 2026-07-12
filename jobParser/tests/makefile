@@ -1,6 +1,6 @@
 CXX := g++
 
-ARCHIVE := ../jobParser.a
+ARCHIVE := ../libjobParser.a
 
 GTEST_LIBS := -L../../deps/googletest/build/lib
 GTEST_INCLUDE := -isystem ../../deps/googletest/googletest/include

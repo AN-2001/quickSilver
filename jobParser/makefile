@@ -15,7 +15,7 @@ CXXFLAGS := -g -std=c++23 -I..\
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
             -Woverloaded-virtual -Wredundant-decls
 OBJECTS := lexer.o parser.o
-ARCHIVE := jobParser.a
+ARCHIVE := libjobParser.a
 
 COVERAGE_FLAGS := --coverage -O0
 ifeq ($(COVERAGE),1)

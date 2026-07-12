@@ -1,6 +1,6 @@
 CXX := g++
 SUBSYSTEMS := jobBuilder jobParser algorithms connections
-LIBS := $(foreach s,$(SUBSYSTEMS),../$(s)/$(s).a)
+LIBS := $(foreach s,$(SUBSYSTEMS),../$(s)/lib$(s).a)
 OBJECTS := integration.o
 CXXFLAGS := -g -std=c++23 -I.. \
 			-Wall -Wextra -Wpedantic \
