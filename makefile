@@ -1,7 +1,7 @@
 CXX := g++
 SUBSYSTEMS := jobBuilder jobParser algorithms connections
+SUBSYSTEMS_TESTS := $(foreach s,$(SUBSYSTEMS),$(s)_test)
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
-LDFLAGS :=
 OBJECTS := main.o
 CXXFLAGS := -g -std=c++23 -I. \
 			-Wall -Wextra -Wpedantic \
@@ -17,18 +17,31 @@ CXXFLAGS := -g -std=c++23 -I. \
 			-Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
 			-Wctor-dtor-privacy -Wnon-virtual-dtor \
 			-Woverloaded-virtual -Wredundant-decls
-COVERAGE_FLAGS := --coverage -O0
 PROJ := quicksilver
 
+LDFLAGS :=
+COVERAGE_FLAGS := --coverage -O0
+
 ifeq ($(COVERAGE),1)
-    CXXFLAGS := $(COMMON_FLAGS) $(COVERAGE_FLAGS)
+    CXXFLAGS += $(COVERAGE_FLAGS)
     LDFLAGS += --coverage
-else
-    CXXFLAGS := $(COMMON_FLAGS) -O2
 endif
 
 all: $(PROJ)
 	+$(MAKE) -C ./tests
+
+test: $(SUBSYSTEMS_TESTS)
+	+$(MAKE) -C ./tests test
+
+coverage:
+	mkdir -p coverage
+	gcovr \
+		--root . \
+		--exclude 'deps/.*' \
+		--exclude '.*/deps/.*' \
+		--html \
+		--html-details \
+		-o coverage/index.html
 
 $(PROJ): $(OBJECTS) $(SUBSYSTEMS)
 	$(CXX) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
@@ -36,12 +49,16 @@ $(PROJ): $(OBJECTS) $(SUBSYSTEMS)
 $(SUBSYSTEMS):
 	+$(MAKE) -C $@
 
+$(SUBSYSTEMS_TESTS):
+	+$(MAKE) -C $(@:_test=) test
+
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $<
 
 .PHONY: all clean $(SUBSYSTEMS)
 
 clean:
-	@rm -f $(OBJECTS) $(PROJ)
+	@rm -f $(OBJECTS) $(PROJ) *.gcno *.gcda
+	@rm -rf ./coverage
 	$(foreach s,$(SUBSYSTEMS),$(MAKE) -C $(s) clean;)
 	$(MAKE) -C ./tests clean

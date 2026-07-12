@@ -23,10 +23,19 @@ CXXFLAGS := -g -std=c++23 -I../.. $(GTEST_INCLUDE) \
 LDFLAGS := $(GTEST_LIBS)
 LDLIBS := -lgtest_main -lgtest -pthread
 
+COVERAGE_FLAGS := --coverage -O0
+ifeq ($(COVERAGE),1)
+    CXXFLAGS := $(CXXFLAGS) $(COVERAGE_FLAGS)
+    LDFLAGS += --coverage
+endif
+
 SRCS := $(wildcard *.cpp)
 TARGET := runTests
 
 all: $(TARGET)
+
+test: all
+	./$(TARGET)
 
 $(TARGET): $(SRCS) $(ARCHIVE)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) $(LDLIBS) -o $@
@@ -35,4 +44,4 @@ $(TARGET): $(SRCS) $(ARCHIVE)
 .PHONY: clean
 
 clean:
-	@rm -f $(TARGET) 
+	@rm -f $(TARGET) *.gcno *.gcda

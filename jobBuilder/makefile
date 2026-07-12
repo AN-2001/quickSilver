@@ -17,7 +17,15 @@ CXXFLAGS := -g -std=c++23 -I..\
 OBJECTS := jobPipeline.o
 ARCHIVE := jobBuilder.a
 
+COVERAGE_FLAGS := --coverage -O0
+ifeq ($(COVERAGE),1)
+    CXXFLAGS := $(CXXFLAGS) $(COVERAGE_FLAGS)
+endif
+
 all: $(ARCHIVE)
+
+test: 
+	+$(MAKE) -C ./tests test
 
 $(ARCHIVE): $(OBJECTS)
 	ar rcs $(ARCHIVE) $(OBJECTS)
@@ -29,5 +37,5 @@ $(ARCHIVE): $(OBJECTS)
 .PHONY: all clean
 
 clean:
-	@rm -f $(ARCHIVE) $(OBJECTS) 
+	@rm -f $(ARCHIVE) $(OBJECTS) *.gcno *.gcda
 	$(MAKE) -C ./tests clean

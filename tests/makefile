@@ -18,10 +18,19 @@ CXXFLAGS := -g -std=c++23 -I.. \
 			-Woverloaded-virtual -Wredundant-decls
 PROJ := integration
 
+LDFLAGS :=
+ifeq ($(COVERAGE),1)
+    CXXFLAGS += $(COVERAGE_FLAGS)
+    LDFLAGS += --coverage
+endif
+
 all: $(PROJ)
 
+test: all
+	./test.sh
+
 $(PROJ): $(OBJECTS) $(SUBSYSTEMS)
-	$(CXX) $(OBJECTS) $(LIBS) -o $@
+	$(CXX) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
 
 $(SUBSYSTEMS):
 	+$(MAKE) -C ../$@
@@ -32,4 +41,4 @@ $(SUBSYSTEMS):
 .PHONY: all clean $(SUBSYSTEMS)
 
 clean:
-	@rm -f $(OBJECTS) $(PROJ)
+	@rm -f $(OBJECTS) $(PROJ) *.gcno *.gcda
