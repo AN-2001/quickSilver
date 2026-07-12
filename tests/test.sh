@@ -2,7 +2,7 @@
 
 set -e
 
-for input in test_files/input*.json; do
+for input in $(ls test_files/input*.json | sort -V); do
     num="${input##*/input}"   # remove "tests/input"
     num="${num%.json}"        # remove ".json"
 

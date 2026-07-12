@@ -26,7 +26,7 @@ void JobTools::JobPipeline::execute() noexcept
 
     if ( !validator.validate() ) {
         Utils::Serializer serializer( m_job );
-        serializer << R"JSON({"status":"Invalid job format"})JSON";
+        serializer << R"JSON({"status":"Job error","error":"Invalid job format"})JSON";
         return;
     }
 
@@ -34,7 +34,7 @@ void JobTools::JobPipeline::execute() noexcept
 
     if ( m_job.m_jobState.type == JobTools::JobType::Metrics ) {
         Utils::Serializer serializer( m_job );
-        serializer << R"JSON({"status":"Metrics jobs aren't supported"})JSON";
+        serializer << R"JSON({"status":"not supported","error":"Metrics jobs aren't supported"})JSON";
         return;
     }
 

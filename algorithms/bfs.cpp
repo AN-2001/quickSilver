@@ -51,7 +51,7 @@ void Algorithms::Bfs::serialize( Utils::Job &job ) noexcept
     Utils::Serializer serialize( job );
 
     if ( m_err != BfsErrorType::NoError ) {
-        serialize << R"JSON({"status":"error","error":")JSON";
+        serialize << R"JSON({"status":"BFS error","error":")JSON";
         serialize << m_errorStrings.get( m_err );
         serialize << R"JSON("})JSON";
         return;
