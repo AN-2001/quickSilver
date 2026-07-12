@@ -83,8 +83,8 @@ namespace JobTools {
                         job.graph.adj.reserve( event.m_ident0 );
                         break;
                     case Json::ParserEventType::AddEdge:
-                        for ( ; aux.currentSrcVertex != event.m_ident0; ++aux.currentSrcVertex )
-                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex + 1 ) ] = static_cast<uint16_t>( job.graph.adj.size() );
+                        for ( ; aux.currentSrcVertex <= event.m_ident0; ++aux.currentSrcVertex )
+                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex ) ] = static_cast<uint16_t>( job.graph.adj.size() );
                         job.graph.adj.push_back( event.m_ident1 );
                         break;
                     case Json::ParserEventType::SetLabelCount:
@@ -96,8 +96,8 @@ namespace JobTools {
                     case Json::ParserEventType::EmptyEvent:
                     case Json::ParserEventType::NumEvents:
                     case Json::ParserEventType::Finish:
-                        for ( ; static_cast< std::size_t > ( aux.currentSrcVertex ) != job.graph.numVertices; ++aux.currentSrcVertex )
-                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex + 1 ) ] = static_cast<uint16_t>( job.graph.adj.size() );
+                        for ( ; static_cast< std::size_t > ( aux.currentSrcVertex ) <= job.graph.numVertices; ++aux.currentSrcVertex )
+                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex ) ] = static_cast<uint16_t>( job.graph.adj.size() );
                         break;
 
                     default:
@@ -110,7 +110,6 @@ namespace JobTools {
             {
                 JobState ret{};
                 JobAuxState aux{};
-                aux.currentSrcVertex = -1;
                 for ( const auto &event : m_container )
                     processEvent( ret, aux, event );
                 ret.strings = m_container.releaseStrings();

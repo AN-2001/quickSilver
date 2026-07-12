@@ -1,6 +1,7 @@
 CXX := g++
 SUBSYSTEMS := jobBuilder jobParser algorithms connections
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/$(s).a)
+LDFLAGS :=
 OBJECTS := main.o
 CXXFLAGS := -g -std=c++23 -I. \
 			-Wall -Wextra -Wpedantic \
@@ -16,13 +17,21 @@ CXXFLAGS := -g -std=c++23 -I. \
 			-Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
 			-Wctor-dtor-privacy -Wnon-virtual-dtor \
 			-Woverloaded-virtual -Wredundant-decls
+COVERAGE_FLAGS := --coverage -O0
 PROJ := quicksilver
+
+ifeq ($(COVERAGE),1)
+    CXXFLAGS := $(COMMON_FLAGS) $(COVERAGE_FLAGS)
+    LDFLAGS += --coverage
+else
+    CXXFLAGS := $(COMMON_FLAGS) -O2
+endif
 
 all: $(PROJ)
 	+$(MAKE) -C ./tests
 
 $(PROJ): $(OBJECTS) $(SUBSYSTEMS)
-	$(CXX) $(OBJECTS) $(LIBS) -o $@
+	$(CXX) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
 
 $(SUBSYSTEMS):
 	+$(MAKE) -C $@

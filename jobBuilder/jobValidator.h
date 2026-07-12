@@ -126,6 +126,8 @@ namespace JobTools {
                 std::size_t currentInput;
                 std::size_t currentLabel;
                 std::size_t currentEdge;
+
+                int lastVertex;
             };
 
         public:
@@ -182,6 +184,9 @@ namespace JobTools {
                             return false;
                         if ( event.m_ident1 >= state.numVertices )
                             return false;
+                        if ( event.m_ident0 < state.lastVertex )
+                            return false;
+                        state.lastVertex = event.m_ident0;
                         return true;
                     case Json::ParserEventType::SetLabelCount:
                         if ( event.m_ident1 != 0 )
@@ -224,6 +229,7 @@ namespace JobTools {
                 ValidatorState currentState = ValidatorState::Init;
 
                 internalState.numStrings = m_container.getStringCount();
+                internalState.lastVertex = -1;
 
                 for ( const auto &event : m_container ) {
                     std::size_t currentIndex = std::to_underlying( currentState );
