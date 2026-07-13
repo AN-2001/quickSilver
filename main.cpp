@@ -1,11 +1,7 @@
-#include "utils/job.h"
-#include "utils/managedFd.h"
-#include "jobBuilder/jobPipeline.h"
+#include "connections/serverTopology.h"
 
 int main()
 {
-    Utils::Job job( Utils::BorrowedFd{ 0 }, Utils::BorrowedFd{ 1 } );
-    JobTools::JobPipeline pipeline( job );
-    pipeline.execute();
-    std::puts("");
+    Connections::ServerTopology<> topology{};
+    topology.start();
 }

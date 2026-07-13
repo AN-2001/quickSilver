@@ -27,6 +27,10 @@ namespace Utils {
 
             JobTools::JobState m_jobState;
 
+            Job() 
+               : m_readFd(BorrowedFd(-1)), m_writeFd( BorrowedFd(-1) )
+            {}
+
             Job( OwnedFd readFd, BorrowedFd writeFd ) noexcept
                 : m_readFd( readFd  ),
                   m_writeFd( writeFd )
