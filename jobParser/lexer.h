@@ -11,7 +11,7 @@
 
 namespace Json {
     class Lexer {
-        static constexpr std::size_t g_buffSize = 2048;
+        static constexpr std::size_t g_buffSize = 1024;
 
         Utils::Job &m_job;
 
@@ -35,7 +35,7 @@ namespace Json {
             std::size_t &m_cursor;
             bool &m_eof;
 
-            [[nodiscard]] Json::Error populate() noexcept 
+            [[nodiscard]] inline Json::Error populate() noexcept 
             {
                 m_cursor = 0;
                 if ( m_eof )
@@ -61,7 +61,7 @@ namespace Json {
                 m_eof( lexer.m_eof )
             {}
 
-            [[nodiscard]] std::expected<char, Json::Error> peek() noexcept 
+            [[nodiscard]] inline std::expected<char, Json::Error> peek() noexcept 
             {
                 if ( m_cursor == std::size_t( m_size ) ) {
                     auto res = populate();
@@ -71,7 +71,7 @@ namespace Json {
                 return m_buff[ m_cursor ];
             }
 
-            [[nodiscard]] std::expected<char, Json::Error> consume() noexcept 
+            [[nodiscard]] inline std::expected<char, Json::Error> consume() noexcept 
             {
                 if ( m_cursor == std::size_t( m_size ) ) {
                     auto res = populate();
@@ -122,8 +122,32 @@ namespace Json {
 
             ~Lexer() = default;
 
-            [[nodiscard]] std::expected< Json::TokenWrapper, Json::Error > peek() noexcept;
-            [[nodiscard]] std::expected< Json::TokenWrapper, Json::Error > get() noexcept;
+            [[nodiscard]] inline std::expected< Json::TokenWrapper, Json::Error > peek() noexcept
+            {
+                if ( !m_nextToken ) {
+                    auto computed = computeNextToken();
+                    if ( !computed )
+                        return computed;
+                    m_nextToken = *computed;
+                }
+
+                return *m_nextToken;
+            }
+
+            [[nodiscard]] inline std::expected< Json::TokenWrapper, Json::Error > get() noexcept
+            {
+                if ( !m_nextToken ) {
+                    auto computed = computeNextToken();
+                    if ( !computed )
+                        return computed;
+                    m_nextToken = *computed;
+                }
+
+                auto ret = *m_nextToken;
+                m_nextToken.reset();
+                return ret;
+            }
+
             [[nodiscard]] Utils::Job &job() const noexcept
             {
                 return m_job;

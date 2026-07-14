@@ -153,29 +153,3 @@ std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken()
             return std::unexpected( Json::Error::UnknownToken );
     }
 }
-
-std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::peek() noexcept
-{
-    if ( !m_nextToken ) {
-        auto computed = computeNextToken();
-        if ( !computed )
-            return computed;
-        m_nextToken = *computed;
-    }
-
-    return *m_nextToken;
-}
-
-std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::get() noexcept
-{
-    if ( !m_nextToken ) {
-        auto computed = computeNextToken();
-        if ( !computed )
-            return computed;
-        m_nextToken = *computed;
-    }
-
-    auto ret = *m_nextToken;
-    m_nextToken.reset();
-    return ret;
-}

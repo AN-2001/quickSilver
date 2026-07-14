@@ -18,7 +18,7 @@
 #include <utility>
 
 namespace Utils {
-    class Job {
+    class alignas( 64 ) Job {
         private:
             ManagedFd m_readFd;
             ManagedFd m_writeFd;

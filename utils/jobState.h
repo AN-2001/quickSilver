@@ -26,7 +26,7 @@ namespace Utils {
         Utils::ArrayView< std::uint16_t > labels;
     };
 
-    struct JobState {
+    struct alignas( 64 ) JobState {
         JobType type;
         AlgorithmType algorithm;
         std::size_t numInputs;

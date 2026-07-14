@@ -1,41 +1,75 @@
 #pragma once
 
 #include "utils/job.h"
+
+#include <array>
 #include <atomic>
 #include <cstddef>
-#include <atomic>
+#include <utility>
 
 namespace Connections {
-    static constexpr int g_cacheLineSize = 64;
 
-    template < std::size_t N = 256 >
-    struct SpmcQueue {
-        std::array< Utils::Job, N > buff;
+static constexpr std::size_t g_cacheLineSize = 64;
 
-        alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
-        alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
+template <std::size_t N = 4096>
+struct SpmcQueue {
+    static_assert((N & (N - 1)) == 0);
+
+    static constexpr std::size_t MASK = N - 1;
+
+    alignas(g_cacheLineSize)
+    std::array<Utils::Job, N> buff;
+
+    // Producer only writes head
+    alignas(g_cacheLineSize)
+    std::atomic<std::size_t> head{0};
+
+    // Consumers only write tail
+    alignas(g_cacheLineSize)
+    std::atomic<std::size_t> tail{0};
 
 
-        void push( Utils::Job &&job ) noexcept {
-            std::size_t newValue, tailValue, oldValue;
-            do {
-                oldValue = head.load( std::memory_order_relaxed );
-                newValue = ( oldValue + 1 ) & ( N - 1 );
-                tailValue = tail.load( std::memory_order_acquire );
-            } while ( newValue == tailValue );
-            buff[ static_cast< std::size_t >( oldValue ) ] = std::move( job );
-            head.store( newValue, std::memory_order_release );
+    void push(Utils::Job&& job) noexcept {
+        std::size_t headValue;
+        std::size_t next;
+
+        for (;;) {
+            headValue = head.load(std::memory_order_relaxed);
+            next = (headValue + 1) & MASK;
+
+            if (next != tail.load(std::memory_order_acquire))
+                break;
         }
 
-        [[nodiscard]] Utils::Job &&pop() noexcept {
-            std::size_t oldValue, newValue, headValue;
+        buff[headValue] = std::move(job);
 
-            do {
-                oldValue = tail.load( std::memory_order_acquire );
-                headValue = head.load( std::memory_order_acquire );
-                newValue = (oldValue + 1) & ( N - 1 );
-            } while ( oldValue == headValue || !tail.compare_exchange_weak( oldValue, newValue, std::memory_order_acq_rel ) );
-            return std::move( buff[ oldValue ] );
+        head.store(next, std::memory_order_release);
+    }
+
+
+    [[nodiscard]] Utils::Job&& pop() noexcept {
+        std::size_t tailValue;
+        std::size_t next;
+
+        for (;;) {
+            tailValue = tail.load(std::memory_order_relaxed);
+            next = (tailValue + 1) & MASK;
+
+            if (tailValue != head.load(std::memory_order_acquire) &&
+                tail.compare_exchange_weak(
+                    tailValue,
+                    next,
+                    std::memory_order_relaxed,
+                    std::memory_order_relaxed))
+            {
+                break;
+            }
+
+            // spin
         }
-    };
+
+        return std::move(buff[tailValue]);
+    }
+};
+
 }

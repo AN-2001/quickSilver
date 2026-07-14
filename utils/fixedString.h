@@ -6,7 +6,7 @@
 #include <string_view>
 
 namespace Utils {
-    constexpr std::size_t g_maxStringSize = 256;
+    constexpr std::size_t g_maxStringSize = 32;
 
     class FixedString {
         public:

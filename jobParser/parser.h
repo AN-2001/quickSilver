@@ -45,7 +45,7 @@ namespace Json {
         Utils::BumpArray< Utils::FixedString > m_stringTable;
         Utils::Allocator &m_allocator;
 
-        [[nodiscard]] Json::Error expect( Json::Token token ) noexcept {
+        [[nodiscard]] inline Json::Error expect( Json::Token token ) noexcept {
             auto tok = m_lexer.get();
             if ( !tok )
                 return tok.error();

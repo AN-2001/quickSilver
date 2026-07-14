@@ -23,7 +23,7 @@ namespace Connections {
     inline void workerFunction( SpmcQueue< 4096 > &queue )
     {
         using namespace Utils;
-        Utils::Arena arena{ 1_GB };
+        thread_local Utils::Arena arena{ 100_MB };
         while ( true ) {
             {
                 Utils::Allocator allocator( arena );

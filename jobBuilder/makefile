@@ -1,6 +1,6 @@
 MAKE := make
 CXX := g++
-CXXFLAGS := -O3 -std=c++23 -I..\
+CXXFLAGS := -std=c++23 -I..\
             -Wall -Wextra -Wpedantic \
             -Wshadow -Wconversion -Wsign-conversion \
             -Wold-style-cast -Wuseless-cast \

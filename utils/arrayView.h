@@ -44,8 +44,9 @@ namespace Utils {
     {
         if ( !count )
             return ArrayView<T>{ nullptr, 0 };
-        std::uintptr_t ptr = allocator.allocate( count * sizeof( T ) , alignof( T ) );
-        return ArrayView<T>{ reinterpret_cast< T*>( ptr ), count };
+        return ArrayView<T>{ reinterpret_cast< T* >( allocator.allocate( count * sizeof( T ) ,
+                                                     alignof( T ) ) ),
+                             count };
     }
 
     template <typename T>
@@ -62,7 +63,7 @@ namespace Utils {
     template <typename T>
     inline Utils::ArrayView<T> makeArrayView( Utils::Allocator &allocator, std::initializer_list<T> elems ) 
     {
-        std::uintptr_t ptr = allocator.allocate( elems.size() * sizeof( T ) , alignof( T ) );
+        T *ptr = reinterpret_cast< T* >( allocator.allocate( elems.size() * sizeof( T ) , alignof( T ) ) );
         T *iter = reinterpret_cast< T* >( ptr );
         for ( const auto &elem : elems ) {
             *iter = elem;
