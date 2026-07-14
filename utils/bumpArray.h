@@ -41,9 +41,11 @@ namespace Utils {
         /* This is a systems level guarantee, if it breaks we have no way of verifying... */
         void bump( const T& elem ) noexcept 
         {
+            T *alloc = reinterpret_cast< T* >( m_allocator.allocate( sizeof( T ), alignof( T ) ) );
             if ( !m_base )
-                m_base = reinterpret_cast< T* >( m_allocator.allocate( sizeof( T ), alignof( T ) ) );
-            m_base[ m_count++ ] = elem;
+                m_base = alloc;
+            *alloc = elem;
+            m_count++;
         }
 
         [[nodiscard]] T &operator[]( std::size_t idx ) const noexcept
