@@ -20,10 +20,17 @@
 
 namespace Connections {
 
-    inline void workerFunction( SpmcQueue< 4096 > &queue )
+    inline void workerFunction( std::size_t threadId, SpmcQueue< 4096 > &queue )
     {
         using namespace Utils;
-        thread_local Utils::Arena arena{ 100_MB };
+
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET( ( threadId % 4 ) , &cpuset);
+
+        sched_setaffinity(0, sizeof(cpuset), &cpuset);
+
+        Utils::Arena arena{ 100_MB };
         while ( true ) {
             {
                 Utils::Allocator allocator( arena );
@@ -43,7 +50,7 @@ namespace Connections {
             public:
             ServerTopology() {
                 for ( std::size_t i = 0; i < pool.size(); ++i )
-                    pool[ i ] = std::thread( workerFunction, std::ref( m_queue ) );
+                    pool[ i ] = std::thread( workerFunction, i, std::ref( m_queue ) );
             }
 
             ~ServerTopology() {

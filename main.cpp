@@ -2,6 +2,6 @@
 
 int main()
 {
-    Connections::ServerTopology< 3 > topology{};
+    Connections::ServerTopology< 4 > topology{};
     topology.start();
 }

@@ -21,7 +21,7 @@ namespace JobTools {
                 std::size_t currentInput;
                 std::size_t currentLabel;
                 std::size_t currentEdge;
-                int currentSrcVertex;
+                std::size_t currentSrcVertex;
             };
 
         public:
@@ -54,7 +54,6 @@ namespace JobTools {
                         break;
                     case Json::ParserEventType::SetVertexCount:
                         job.graph.numVertices = event.m_ident0;
-                        /* TODO: handle Out of memory... */
                         job.graph.offsets = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 + 1 );
                         break;
                     case Json::ParserEventType::SetEdgeCount:
