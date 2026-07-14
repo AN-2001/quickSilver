@@ -30,7 +30,7 @@ namespace Connections {
 
         sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
-        Utils::Arena arena{ 100_MB };
+        Utils::Arena arena{ 10_MB };
         while ( true ) {
             {
                 Utils::Allocator allocator( arena );

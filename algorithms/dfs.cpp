@@ -1,36 +1,35 @@
 #include "dfs.h"
+#include "utils/arrayView.h"
 #include "utils/job.h"
 #include "utils/serializer.h"
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <stack>
-#include <vector>
 
 void Algorithms::Dfs::run() noexcept 
 {
     if ( m_err != Algorithms::DfsErrorType::NoError )
         return;
     uint16_t source = static_cast< uint16_t > ( m_source );
-    std::stack< uint16_t > dfsStack;
-    std::vector< uint8_t > visited( m_graph.numVertices, 0 );
+    Utils::ArrayView< uint16_t > dfsStack( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices ) );
+    Utils::ArrayView< uint16_t > visited( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices, 0 ) );
+    std::size_t top = 0;
 
-    dfsStack.push( source );
+    dfsStack[ top++ ] = source;
     
     visited[ source ] = 1;
     m_parents[ source ] = source;
 
-    while ( !dfsStack.empty() ) {
-        auto v = dfsStack.top();
-        dfsStack.pop();
+    while ( top ) {
+        auto v = dfsStack[ --top ];
 
         for ( std::size_t i = m_graph.offsets[ v ]; i < m_graph.offsets[ v + 1 ]; ++i ) {
             uint16_t n = m_graph.adj[ i ];
             if ( !visited[ n ] ) {
                 visited[ n ] = 1;
                 m_parents[ n ] = v;
-                dfsStack.push( n );
+                dfsStack[ top++ ] = n;
             }
         }
     }
@@ -58,7 +57,7 @@ void Algorithms::Dfs::serialize( Utils::Job &job ) noexcept
         if ( m_parents[ i ] != std::numeric_limits< uint16_t >::max() )
             serialize << std::to_string( m_parents[ i ] );
         else
-            serialize << "-1";
+            serialize << "null";
     }
 
     serialize << "]}";

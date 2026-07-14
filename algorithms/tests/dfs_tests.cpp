@@ -136,7 +136,7 @@ static const DfsTestCase DfsTests[] = {
         },
         .numInputs = 1,
         .input = { 0 },
-        .expected = R"json({"status":"ok","parent":[0,0,0,-1,-1]})json"sv
+        .expected = R"json({"status":"ok","parent":[0,0,0,null,null]})json"sv
     },
     {
         .name = "test_disconnected_graph",
@@ -152,7 +152,7 @@ static const DfsTestCase DfsTests[] = {
         },
         .numInputs = 1,
         .input = { 0 },
-        .expected = R"json({"status":"ok","parent":[0,0,1,-1,-1]})json"sv
+        .expected = R"json({"status":"ok","parent":[0,0,1,null,null]})json"sv
     },
     {
         .name = "test_cycle",
@@ -216,7 +216,7 @@ static const DfsTestCase DfsTests[] = {
         },
         .numInputs = 1,
         .input = { 3 },
-        .expected = R"json({"status":"ok","parent":[-1,-1,-1,3,3,4]})json"sv
+        .expected = R"json({"status":"ok","parent":[null,null,null,3,3,4]})json"sv
     },
 };
 

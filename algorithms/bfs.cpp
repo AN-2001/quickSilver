@@ -5,8 +5,7 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <queue>
-#include <vector>
+#include "utils/ringBuff.h"
 
 void Algorithms::Bfs::run() noexcept 
 {
@@ -14,10 +13,11 @@ void Algorithms::Bfs::run() noexcept
         return;
     uint16_t source = static_cast< uint16_t > ( m_source );
     uint16_t distance = 0;
-    std::queue< uint16_t > bfsQueue;
-    std::vector< uint8_t > visited( m_graph.numVertices, 0 );
+    Utils::RingBuffer< uint16_t > bfsQueue( m_allocator, m_graph.numVertices );
+    Utils::ArrayView< uint16_t > visited( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices, 0 ) );
 
-    bfsQueue.push( source );
+    if ( !bfsQueue.push( source ) ) 
+        return;
     
     visited[ source ] = 1;
     m_distances[ source ] = distance;
@@ -29,17 +29,20 @@ void Algorithms::Bfs::run() noexcept
 
         for ( std::size_t k = 0; k < size; ++k ) {
             auto v = bfsQueue.front();
-            for ( uint16_t i = m_graph.offsets[ v ]; i < m_graph.offsets[ v + 1 ]; ++i ) {
+            if ( !v )
+                return;
+            for ( uint16_t i = m_graph.offsets[ *v ]; i < m_graph.offsets[ *v + 1 ]; ++i ) {
                 uint16_t n = m_graph.adj[ i ];
                 if ( !visited[ n ] ) {
                     visited[ n ] = 1;
-                    bfsQueue.push( n );
+                    if ( !bfsQueue.push( n ) )
+                        return;
 
                     m_distances[ n ] = distance;
-                    m_parents[ n ] = v;
+                    m_parents[ n ] = *v;
                 }
             }
-            bfsQueue.pop();
+            (void)bfsQueue.pop();
         }
 
         distance++;

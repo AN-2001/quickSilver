@@ -35,7 +35,7 @@ namespace Utils {
               m_data( ::mmap( nullptr,
                       size + PAGE_SIZE,
                       PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 ) ),
+                      MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0 ) ),
               m_hadError( m_data == MAP_FAILED )
         {
             if ( m_hadError )
