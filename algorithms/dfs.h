@@ -1,10 +1,13 @@
 #pragma once
 
-#include "jobBuilder/jobBuilder.h"
+#include "utils/allocator.h"
+#include "utils/arrayView.h"
+#include "utils/jobState.h"
 #include "utils/job.h"
 #include "utils/fastMap.h"
 #include <array>
 #include <cstdint>
+#include <limits>
 #include <utility>
 
 namespace Algorithms {
@@ -33,17 +36,20 @@ namespace Algorithms {
     class Dfs {
         static constexpr auto m_errorStrings = buildDfsErrorMapping();
 
-        const JobTools::GraphCsr &m_graph;
+        Utils::Allocator &m_allocator;
+        const Utils::GraphCsr &m_graph;
         int m_source;
         DfsErrorType m_err = DfsErrorType::NoError;
-        std::vector< std::optional< uint16_t > > m_parents;
+        Utils::ArrayView< uint16_t > m_parents;
 
         public:
-        Dfs( const JobTools::GraphCsr &graph,
-             const std::array< uint16_t, JobTools::MAX_INPUT_SIZE > input,
+        Dfs( Utils::Allocator &allocator,
+             const Utils::GraphCsr &graph,
+             const std::array< uint16_t, Utils::MAX_INPUT_SIZE > input,
              std::size_t numInput )
-        : m_graph( graph ),
-          m_parents( graph.numVertices, std::nullopt )
+        : m_allocator( allocator ),
+          m_graph( graph ),
+          m_parents( Utils::makeArrayView<uint16_t>( m_allocator, graph.numVertices, std::numeric_limits<uint16_t>::max() ) )
         {
             if ( numInput != 1 )
                 m_err = DfsErrorType::InvalidInputCount;

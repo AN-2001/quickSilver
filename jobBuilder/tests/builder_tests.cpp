@@ -10,6 +10,11 @@
 
 #include "jobParser/parserEvents.h"
 #include "jobParser/token.h"
+#include "utils/allocator.h"
+#include "utils/arena.h"
+#include "utils/arrayView.h"
+#include "utils/fixedString.h"
+#include "utils/jobState.h"
 #include "eventWrapper.h"
 
 using namespace std::literals::string_view_literals;
@@ -18,15 +23,19 @@ using namespace std::literals::string_view_literals;
 struct BuilderTestCase {
     const char *name;
     EventWrapper input;
-    JobTools::JobState expected;
+    Utils::JobState expected;
 };
+
+using namespace Utils;
+static Utils::Arena g_arena( 200_MB );
+static Utils::Allocator g_allocator( g_arena );
 
 class BuilderTest : public ::testing::TestWithParam<BuilderTestCase> {};
 
 TEST_P(BuilderTest, HandlesEventSequence) {
     const auto &testParams = GetParam();
 
-    JobTools::Builder builder( testParams.input );
+    JobTools::Builder builder( testParams.input, g_allocator );
 
     auto ret = builder.build();
     const auto &expected = testParams.expected;
@@ -71,15 +80,20 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::Finish ),
         },
         .expected = {
-            .type = JobTools::JobType::Compute,
-            .algorithm = JobTools::AlgorithmType::BFS,
+            .type = Utils::JobType::Compute,
+            .algorithm = Utils::AlgorithmType::BFS,
             .numInputs = 1,
             .inputs = { 5 },
             .graph = {
                 .numVertices = 2,
-                .adj = { 1 },
-                .offsets = { 0, 1, 1 },
-                .labels = {}
+                .adj = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 1 }
+                        ),
+
+                .offsets = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 0, 1, 1 }
+                        ),
+                .labels = Utils::makeArrayView<std::uint16_t>( g_allocator, 0 )
             },
             .strings = {}
         }
@@ -100,15 +114,20 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::Finish ),
         },
         .expected = {
-            .type = JobTools::JobType::Compute,
-            .algorithm = JobTools::AlgorithmType::BFS,
+            .type = Utils::JobType::Compute,
+            .algorithm = Utils::AlgorithmType::BFS,
             .numInputs = 1,
             .inputs = { 5 },
             .graph = {
                 .numVertices = 3,
-                .adj = { 1, 2, 0 },
-                .offsets = { 0, 2, 2, 3 },
-                .labels = {}
+                .adj = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 1, 2, 0 }
+                        ),
+
+                .offsets = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 0, 2, 2, 3 }
+                        ),
+                .labels = Utils::makeArrayView<std::uint16_t>( g_allocator, 0 )
             },
             .strings = {}
         }
@@ -123,7 +142,7 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::AddInput, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddInput, 2 ),
             Json::ParserEvent( Json::ParserEventType::SetVertexCount, 4 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 4 ),
+            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 5 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 2 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 1, 3 ),
@@ -133,15 +152,21 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::Finish ),
         },
         .expected = {
-            .type = JobTools::JobType::Compute,
-            .algorithm = JobTools::AlgorithmType::BFS,
+            .type = Utils::JobType::Compute,
+            .algorithm = Utils::AlgorithmType::BFS,
             .numInputs = 3,
             .inputs = { 0, 1, 2 },
             .graph = {
                 .numVertices = 4,
-                .adj = { 1, 2, 3, 0, 2 },
-                .offsets = { 0, 2, 3, 4, 5 },
-                .labels = {}
+                .adj = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 1, 2, 3, 0, 2 }
+                        ),
+
+                .offsets = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 0, 2, 3, 4, 5 }
+                        ),
+
+                .labels = Utils::makeArrayView<std::uint16_t>( g_allocator, 0 )
             },
             .strings = {}
         }
@@ -149,7 +174,12 @@ static const BuilderTestCase BuilderTests[] = {
     {
         .name = "test_with_labels",
         .input = { 2,
-                { "Chicago", "Los Angeles" },
+            Utils::makeArrayView< Utils::FixedString>(
+                g_allocator,
+                {
+                    Utils::FixedString( "Chicago"sv ),
+                    Utils::FixedString( "Los Angeles"sv ),
+                } ),
             Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
             Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
             Json::ParserEvent( Json::ParserEventType::SetInputCount, 3 ),
@@ -157,7 +187,7 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::AddInput, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddInput, 2 ),
             Json::ParserEvent( Json::ParserEventType::SetVertexCount, 4 ),
-            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 4 ),
+            Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 5 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 1 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 0, 2 ),
             Json::ParserEvent( Json::ParserEventType::AddEdge, 1, 3 ),
@@ -169,23 +199,43 @@ static const BuilderTestCase BuilderTests[] = {
             Json::ParserEvent( Json::ParserEventType::Finish ),
         },
         .expected = {
-            .type = JobTools::JobType::Compute,
-            .algorithm = JobTools::AlgorithmType::BFS,
+            .type = Utils::JobType::Compute,
+            .algorithm = Utils::AlgorithmType::BFS,
             .numInputs = 3,
             .inputs = { 0, 1, 2 },
             .graph = {
                 .numVertices = 4,
-                .adj = { 1, 2, 3, 0, 2 },
-                .offsets = { 0, 2, 3, 4, 5 },
-                .labels = { 0, 1 }
+                .adj = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 1, 2, 3, 0, 2 }
+                        ),
+
+                .offsets = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 0, 2, 3, 4, 5 }
+                        ),
+
+                .labels = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                            { 0, 1 }
+
+                        )
             },
-            .strings = { "Chicago", "Los Angeles" }
+            .strings = Utils::makeArrayView<Utils::FixedString>(g_allocator,
+                    { 
+                      Utils::FixedString( "Chicago"sv ),
+                      Utils::FixedString( "Los Angeles"sv )
+                    }
+                    )
         }
     },
     {
     .name = "test_complex",
     .input = { 3,
-        { "Chicago", "Los Angeles", "New York" },
+        Utils::makeArrayView< Utils::FixedString>(
+            g_allocator,
+            {
+                Utils::FixedString( "Chicago"sv ),
+                Utils::FixedString( "Los Angeles"sv ),
+                Utils::FixedString( "New York"sv )
+            } ),
         Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
         Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
         Json::ParserEvent( Json::ParserEventType::SetInputCount, 3 ),
@@ -237,8 +287,8 @@ static const BuilderTestCase BuilderTests[] = {
         Json::ParserEvent( Json::ParserEventType::Finish ),
     },
     .expected = {
-        .type = JobTools::JobType::Compute,
-        .algorithm = JobTools::AlgorithmType::BFS,
+        .type = Utils::JobType::Compute,
+        .algorithm = Utils::AlgorithmType::BFS,
         .numInputs = 3,
         .inputs = { 0, 1, 2 },
         .graph = {
@@ -253,7 +303,8 @@ static const BuilderTestCase BuilderTests[] = {
             // v5: 7,2,3
             // v6: 4,1
             // v7: 0,6
-            .adj = {
+            .adj = Utils::makeArrayView<std::uint16_t>( g_allocator,
+             {
                 1, 2, 3,
                 4, 5,
                 5, 6,
@@ -262,15 +313,24 @@ static const BuilderTestCase BuilderTests[] = {
                 7, 2, 3,
                 4, 1,
                 0, 6
-            },
+            }),
 
-            .offsets = {
-                0, 3, 5, 7, 8, 10, 13, 15, 17
-            },
+            .offsets = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                {
+                    0, 3, 5, 7, 8, 10, 13, 15, 17
+                }
+            ),
 
-            .labels = { 0, 1, 2 }
+            .labels = Utils::makeArrayView<std::uint16_t>( g_allocator,
+                    {
+                     0, 1, 2
+                    }
+            )
         },
-        .strings = { "Chicago", "Los Angeles", "New York" }
+        .strings = Utils::makeArrayView<Utils::FixedString>(g_allocator,
+                { Utils::FixedString( "Chicago"sv ),
+                  Utils::FixedString( "Los Angeles"sv ),
+                  Utils::FixedString( "New York"sv ) } )
     }
     },
 };

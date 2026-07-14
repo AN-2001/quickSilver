@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <stack>
 #include <vector>
 
@@ -54,8 +55,8 @@ void Algorithms::Dfs::serialize( Utils::Job &job ) noexcept
         if ( !first )
             serialize << ",";
         first = false;
-        if ( m_parents[ i ] )
-            serialize << std::to_string( *m_parents[ i ] );
+        if ( m_parents[ i ] != std::numeric_limits< uint16_t >::max() )
+            serialize << std::to_string( m_parents[ i ] );
         else
             serialize << "-1";
     }

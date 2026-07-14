@@ -12,23 +12,23 @@ namespace Connections {
     struct SpmcQueue {
         std::array< Utils::Job, N > buff;
 
-        alignas( g_cacheLineSize ) std::atomic< int > head{};
-        alignas( g_cacheLineSize ) std::atomic< int > tail{};
+        alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
+        alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
 
 
         void push( Utils::Job &&job ) noexcept {
-            int newValue, tailValue, oldValue;
+            std::size_t newValue, tailValue, oldValue;
             do {
                 oldValue = head.load( std::memory_order_relaxed );
-                newValue = (oldValue + 1) & ( N - 1 );
+                newValue = ( oldValue + 1 ) & ( N - 1 );
                 tailValue = tail.load( std::memory_order_acquire );
             } while ( newValue == tailValue );
-            buff[ oldValue ] = std::move( job );
+            buff[ static_cast< std::size_t >( oldValue ) ] = std::move( job );
             head.store( newValue, std::memory_order_release );
         }
 
         [[nodiscard]] Utils::Job &&pop() noexcept {
-            int oldValue, newValue, headValue;
+            std::size_t oldValue, newValue, headValue;
 
             do {
                 oldValue = tail.load( std::memory_order_acquire );

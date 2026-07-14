@@ -1,7 +1,10 @@
 graphToys
 *.o
 */*.o
+*.a
+*/*.a
 compile_commands.json
 .cache
 .cache/
 .cache/*
+generated/

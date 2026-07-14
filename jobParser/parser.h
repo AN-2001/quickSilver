@@ -5,11 +5,13 @@
 #include <array>
 #include <cstdint>
 #include <expected>
-#include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 #include "parserEvents.h"
+#include "utils/allocator.h"
+#include "utils/bumpArray.h"
+#include "utils/arrayView.h"
+#include "utils/fixedString.h"
 
 namespace Json {
     class Parser {
@@ -17,7 +19,6 @@ namespace Json {
         static constexpr std::size_t NUM_EVENTS_PER_TYPE = 4096;
         static constexpr std::size_t NUM_EVENTS = std::to_underlying( ParserEventType::NumEvents );
 
-        std::vector< std::string > m_stringTable{};
         std::array< std::array< ParserEvent, NUM_EVENTS_PER_TYPE>,
                     NUM_EVENTS > m_eventQueue;
         std::array< std::size_t, NUM_EVENTS > m_eventCounts{};
@@ -34,15 +35,15 @@ namespace Json {
 
         [[nodiscard]] std::expected< uint16_t, Json::Error > addString( std::string_view view ) noexcept 
         {
-            if ( m_stringTable.empty() )
-                m_stringTable.reserve( NUM_EVENTS_PER_TYPE );
             if ( m_stringTable.size() == NUM_EVENTS_PER_TYPE )
                 return std::unexpected<Json::Error>( Json::Error::TooManyStrings );
-            m_stringTable.push_back( std::string( view ) );
+            m_stringTable.bump( view );
             return static_cast< uint16_t >( m_stringTable.size() - 1 );
         }
 
         Lexer &m_lexer;
+        Utils::BumpArray< Utils::FixedString > m_stringTable;
+        Utils::Allocator &m_allocator;
 
         [[nodiscard]] Json::Error expect( Json::Token token ) noexcept {
             auto tok = m_lexer.get();
@@ -103,8 +104,10 @@ namespace Json {
 
         [[nodiscard]] Json::Error parse() noexcept;
 
-        Parser( Lexer &lexer )
-            : m_lexer( lexer ){}
+        Parser( Lexer &lexer, Utils::Allocator &allocator )
+            : m_lexer( lexer ),
+              m_stringTable( allocator ),
+              m_allocator( allocator ){}
 
         Parser( const Parser &other ) noexcept = delete;
         Parser( Parser &other ) noexcept = delete;
@@ -122,9 +125,9 @@ namespace Json {
             return m_stringTable.size();
         }
 
-        auto releaseStrings() noexcept -> std::vector< std::string >&&
+        auto releaseStrings() noexcept -> Utils::ArrayView< Utils::FixedString >
         {
-            return std::move( m_stringTable );
+            return m_stringTable.toView();
         }
 
         void operator=( const Parser &other ) noexcept = delete;

@@ -12,6 +12,8 @@
 #include "jobParser/lexer.h"
 #include "jobParser/parser.h"
 #include "jobParser/parserEvents.h"
+#include "utils/allocator.h"
+#include "utils/arena.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 
@@ -38,9 +40,11 @@ TEST_P(ParserTest, ProducesExpectedEvents) {
     if ( devNull < 0 ) 
         FAIL() << "Could not open /dev/null";
 
+    Utils::Arena arena( 1024 );
+    Utils::Allocator allocator( arena );
     Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, Utils::BorrowedFd{ devNull } );
     Json::Lexer lexer( mockJob );
-    Json::Parser parser( lexer );
+    Json::Parser parser( lexer, allocator );
 
     ssize_t written;
 
@@ -73,7 +77,7 @@ TEST_P(ParserTest, ProducesExpectedEvents) {
             ASSERT_EQ( event.m_ident0, expectedEvent.m_ident0 ) << " : Mismatching ident0 at index " << index;
             ASSERT_EQ( event.m_ident1, expectedEvent.m_ident1 ) << " : Mismatching ident1 at index " << index;
         } else {
-            ASSERT_EQ( strings[ event.m_ident1 ], testParams.labels[ expectedEvent.m_ident1 ] ) << " : Mismatching labels at index " << index;
+            ASSERT_EQ( strings[ event.m_ident1 ].toView(), testParams.labels[ expectedEvent.m_ident1 ] ) << " : Mismatching labels at index " << index;
         }
         index++;
     }

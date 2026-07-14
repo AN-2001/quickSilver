@@ -12,7 +12,7 @@
 #pragma once
 
 #include "utils/managedFd.h"
-#include "jobBuilder/jobBuilder.h"
+#include "utils/jobState.h"
 #include <sys/types.h>
 #include <unistd.h>
 #include <utility>
@@ -25,7 +25,7 @@ namespace Utils {
 
         public:
 
-            JobTools::JobState m_jobState;
+            Utils::JobState m_jobState;
 
             Job() 
                : m_readFd(BorrowedFd(-1)), m_writeFd( BorrowedFd(-1) )

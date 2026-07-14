@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <queue>
 #include <vector>
 
@@ -64,12 +65,11 @@ void Algorithms::Bfs::serialize( Utils::Job &job ) noexcept
         if ( !first )
             serialize << ",";
         first = false;
-        if ( n ) 
-            serialize << std::to_string( *n );
+        if ( n != std::numeric_limits<uint16_t>::max() ) 
+            serialize << std::to_string( n );
         else
             serialize << "\"INF\"";
     }
-
 
     serialize << R"JSON(],"parent":[)JSON";
     first = true;
@@ -77,8 +77,8 @@ void Algorithms::Bfs::serialize( Utils::Job &job ) noexcept
         if ( !first )
             serialize << ",";
         first = false;
-        if ( m_parents[ i ] )
-            serialize << std::to_string( *m_parents[ i ] );
+        if ( m_parents[ i ] != std::numeric_limits<uint16_t>::max() )
+            serialize << std::to_string( m_parents[ i ] );
         else
             serialize << "-1";
     }
