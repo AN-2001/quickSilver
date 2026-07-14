@@ -30,7 +30,7 @@ test: all
 	./test.sh
 
 $(PROJ): $(OBJECTS) $(SUBSYSTEMS)
-	$(CXX) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
 
 $(SUBSYSTEMS):
 	+$(MAKE) -C ../$@

@@ -14,7 +14,6 @@ namespace Connections {
         alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
         alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
 
-
         void push( Utils::Job &&job ) noexcept {
             std::size_t newValue, tailValue, oldValue;
             do {
@@ -22,13 +21,12 @@ namespace Connections {
                 newValue = ( oldValue + 1 ) & ( N - 1 );
                 tailValue = tail.load( std::memory_order_acquire );
             } while ( newValue == tailValue );
-            buff[ static_cast< std::size_t >( oldValue ) ] = std::move( job );
+            buff[ oldValue ] = std::move( job );
             head.store( newValue, std::memory_order_release );
         }
 
         [[nodiscard]] Utils::Job &&pop() noexcept {
             std::size_t oldValue, newValue, headValue;
-
             do {
                 oldValue = tail.load( std::memory_order_acquire );
                 headValue = head.load( std::memory_order_acquire );

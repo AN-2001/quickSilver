@@ -1,6 +1,7 @@
 CXX := g++
 MAKE := make
-CXXFLAGS := -std=c++23 -I. \
+CXXFLAGS := -g \
+			-std=c++23 -I. \
             -Wall -Wextra -Wpedantic \
             -Wshadow -Wconversion -Wsign-conversion \
             -Wold-style-cast -Wuseless-cast \
@@ -13,4 +14,5 @@ CXXFLAGS := -std=c++23 -I. \
             -Wzero-as-null-pointer-constant \
             -Wsuggest-override -Wsuggest-final-types -Wsuggest-final-methods \
             -Wctor-dtor-privacy -Wnon-virtual-dtor \
-            -Woverloaded-virtual -Wredundant-decls
+            -Woverloaded-virtual -Wredundant-decls \
+			-Wl,-rpath,/home/amber/gcc-trunk/lib64 

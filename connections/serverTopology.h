@@ -20,7 +20,8 @@
 
 namespace Connections {
 
-    inline void workerFunction( std::size_t threadId, SpmcQueue< 4096 > &queue )
+    template <std::size_t N>
+    inline void workerFunction( std::size_t threadId, SpmcQueue< N > &queue )
     {
         using namespace Utils;
 
@@ -30,7 +31,7 @@ namespace Connections {
 
         sched_setaffinity(0, sizeof(cpuset), &cpuset);
 
-        Utils::Arena arena{ 10_MB };
+        Utils::Arena arena{ 1_MB };
         while ( true ) {
             {
                 Utils::Allocator allocator( arena );
@@ -42,15 +43,15 @@ namespace Connections {
 
     }
 
-    template <std::size_t NumThreads = 16 >
+    template <std::size_t NumThreads = 16, std::size_t QueueSize = 4096 * 2 >
         class ServerTopology {
-            SpmcQueue< 4096 > m_queue;
+            SpmcQueue< QueueSize > m_queue;
             std::array< std::thread, NumThreads > pool;
 
             public:
             ServerTopology() {
                 for ( std::size_t i = 0; i < pool.size(); ++i )
-                    pool[ i ] = std::thread( workerFunction, i, std::ref( m_queue ) );
+                    pool[ i ] = std::thread( workerFunction< QueueSize >, i, std::ref( m_queue ) );
             }
 
             ~ServerTopology() {
@@ -87,7 +88,7 @@ namespace Connections {
                     return EXIT_FAILURE;
                 }
 
-                if ( ::listen( listen_fd, 1024 ) < 0 ) {
+                if ( ::listen( listen_fd, 128 ) < 0 ) {
                     perror( "listen" );
                     close( listen_fd );
                     return EXIT_FAILURE;
