@@ -39,14 +39,11 @@ namespace Utils {
 
         /* Bump must be called in series with no other allocations in between. */
         /* This is a systems level guarantee, if it breaks we have no way of verifying... */
-        template <typename... Args >
-        void bump( Args &...args ) noexcept 
+        void bump( const T& elem ) noexcept 
         {
-            std::uintptr_t alloc = m_allocator.allocate( sizeof( T ), alignof( T ) );
             if ( !m_base )
-                m_base = reinterpret_cast<T*>( alloc );
-            new ( reinterpret_cast< T* >( alloc ) )T( std::forward<Args>( args )... );
-            m_count++;
+                m_base = reinterpret_cast< T* >( m_allocator.allocate( sizeof( T ), alignof( T ) ) );
+            m_base[ m_count++ ] = elem;
         }
 
         [[nodiscard]] T &operator[]( std::size_t idx ) const noexcept

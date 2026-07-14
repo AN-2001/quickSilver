@@ -37,7 +37,7 @@ namespace Json {
         {
             if ( m_stringTable.size() == NUM_EVENTS_PER_TYPE )
                 return std::unexpected<Json::Error>( Json::Error::TooManyStrings );
-            m_stringTable.bump( view );
+            m_stringTable.bump( Utils::makeFixedString( view ) );
             return static_cast< uint16_t >( m_stringTable.size() - 1 );
         }
 

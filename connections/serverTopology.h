@@ -24,14 +24,13 @@ namespace Connections {
     {
         using namespace Utils;
         Utils::Arena arena{ 1_GB };
-        if ( !arena.validate() )
-            return; /* Report error somehow. */
-
         while ( true ) {
-            Utils::Allocator allocator( arena );
-            auto job = queue.pop();
-            JobTools::JobPipeline pipeline( job, allocator );
-            pipeline.execute();
+            {
+                Utils::Allocator allocator( arena );
+                auto job = queue.pop();
+                JobTools::JobPipeline pipeline( job, allocator );
+                pipeline.execute();
+            }
         }
 
     }

@@ -3,7 +3,7 @@ SUBSYSTEMS := jobBuilder jobParser algorithms connections
 SUBSYSTEMS_TESTS := $(foreach s,$(SUBSYSTEMS),$(s)_test)
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/lib$(s).a)
 OBJECTS := main.o
-CXXFLAGS := -g -std=c++23 -I. \
+CXXFLAGS := -std=c++23 -I. \
 			-Wall -Wextra -Wpedantic \
 			-Wshadow -Wconversion -Wsign-conversion \
 			-Wold-style-cast -Wuseless-cast \

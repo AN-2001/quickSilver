@@ -14,7 +14,7 @@ namespace Utils {
         public:
         constexpr void add( const Key &key, const Value &val ) {
             std::size_t i;
-            for ( i = 0; i < curr && inner[ i ].first != key; i++ );
+            for ( i = 0; i < curr && inner[ i ].first != key; ++i );
             if ( i < curr ) 
                 throw std::logic_error( "Key already exists" );
 
@@ -25,14 +25,14 @@ namespace Utils {
 
         [[nodiscard]] constexpr Value get( const Key &key ) const {
             std::size_t i;
-            for ( i = 0; i < curr && inner[ i ].first != key; i++ );
+            for ( i = 0; i < curr && inner[ i ].first != key; ++i );
             if ( i == curr ) throw std::range_error( "Key does not exist" );
             return inner[ i ].second;
         }
 
         [[nodiscard]] constexpr bool exists( const Key &key ) const {
             std::size_t i;
-            for ( i = 0; i < curr && inner[ i ].first != key; i++ );
+            for ( i = 0; i < curr && inner[ i ].first != key; ++i );
             return i < curr;
         }
 

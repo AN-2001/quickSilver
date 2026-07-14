@@ -2,8 +2,11 @@
 
 #include <cstddef>
 #include <sys/mman.h>
+#include <unistd.h>
 
 namespace Utils {
+
+    static const std::size_t PAGE_SIZE = static_cast< std::size_t > ( sysconf( _SC_PAGESIZE ) );
 
     consteval std::size_t operator""_KB(unsigned long long n) {
         return n * 1024ULL;
@@ -30,11 +33,18 @@ namespace Utils {
         Arena( std::size_t size ) noexcept
             : m_size( size ),
               m_data( ::mmap( nullptr,
-                      size,
+                      size + PAGE_SIZE,
                       PROT_READ | PROT_WRITE,
                       MAP_PRIVATE | MAP_ANONYMOUS, 0, 0 ) ),
               m_hadError( m_data == MAP_FAILED )
         {
+            if ( m_hadError )
+                return;
+            mprotect(
+                static_cast<char*>( m_data ) + m_size,
+                PAGE_SIZE,
+                PROT_NONE
+            );
         }
 
         Arena( const Arena &other ) = delete;
@@ -46,11 +56,6 @@ namespace Utils {
         {
             if ( !m_hadError )
                 ::munmap( m_data, m_size );
-        }
-
-        [[nodiscard]] bool validate() const noexcept
-        {
-            return !m_hadError;
         }
 
         [[nodiscard]] std::size_t size() const noexcept

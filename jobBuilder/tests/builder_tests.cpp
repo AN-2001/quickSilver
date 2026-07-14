@@ -60,7 +60,7 @@ TEST_P(BuilderTest, HandlesEventSequence) {
     ASSERT_EQ( ret.strings.size(), expected.strings.size() );
     ASSERT_EQ( ret.graph.labels.size(), expected.graph.labels.size() );
     for ( std::size_t i = 0; i < ret.graph.labels.size(); i++ )
-        ASSERT_EQ( ret.strings[ ret.graph.labels[ i ] ], expected.strings[ expected.graph.labels[ i ] ] );
+        ASSERT_EQ( ret.strings[ ret.graph.labels[ i ] ].toView(), expected.strings[ expected.graph.labels[ i ] ].toView() );
 
 
 }
@@ -177,8 +177,8 @@ static const BuilderTestCase BuilderTests[] = {
             Utils::makeArrayView< Utils::FixedString>(
                 g_allocator,
                 {
-                    Utils::FixedString( "Chicago"sv ),
-                    Utils::FixedString( "Los Angeles"sv ),
+                    Utils::makeFixedString( "Chicago"sv ),
+                    Utils::makeFixedString( "Los Angeles"sv ),
                 } ),
             Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
             Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
@@ -220,8 +220,8 @@ static const BuilderTestCase BuilderTests[] = {
             },
             .strings = Utils::makeArrayView<Utils::FixedString>(g_allocator,
                     { 
-                      Utils::FixedString( "Chicago"sv ),
-                      Utils::FixedString( "Los Angeles"sv )
+                      Utils::makeFixedString( "Chicago"sv ),
+                      Utils::makeFixedString( "Los Angeles"sv )
                     }
                     )
         }
@@ -232,9 +232,9 @@ static const BuilderTestCase BuilderTests[] = {
         Utils::makeArrayView< Utils::FixedString>(
             g_allocator,
             {
-                Utils::FixedString( "Chicago"sv ),
-                Utils::FixedString( "Los Angeles"sv ),
-                Utils::FixedString( "New York"sv )
+                Utils::makeFixedString( "Chicago"sv ),
+                Utils::makeFixedString( "Los Angeles"sv ),
+                Utils::makeFixedString( "New York"sv )
             } ),
         Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),
         Json::ParserEvent( Json::ParserEventType::SetAlgorithm, std::to_underlying( Json::Token::Bfs ) ),
@@ -328,9 +328,9 @@ static const BuilderTestCase BuilderTests[] = {
             )
         },
         .strings = Utils::makeArrayView<Utils::FixedString>(g_allocator,
-                { Utils::FixedString( "Chicago"sv ),
-                  Utils::FixedString( "Los Angeles"sv ),
-                  Utils::FixedString( "New York"sv ) } )
+                { Utils::makeFixedString( "Chicago"sv ),
+                  Utils::makeFixedString( "Los Angeles"sv ),
+                  Utils::makeFixedString( "New York"sv ) } )
     }
     },
 };

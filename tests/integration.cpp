@@ -8,9 +8,6 @@ int main()
 {
     using namespace Utils;
     Utils::Arena arena( 1_GB );
-    if ( !arena.validate() )
-        return 1;
-
     Utils::Allocator allocator( arena );
 
     Utils::Job job( Utils::BorrowedFd{ 0 }, Utils::BorrowedFd{ 1 } );
