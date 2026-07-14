@@ -44,8 +44,7 @@ namespace Utils {
     {
         if ( !count )
             return ArrayView<T>{ nullptr, 0 };
-
-        std::byte *ptr = allocator.allocate( count * sizeof( T ) , alignof( T ) );
+        std::uintptr_t ptr = allocator.allocate( count * sizeof( T ) , alignof( T ) );
         return ArrayView<T>{ reinterpret_cast< T*>( ptr ), count };
     }
 
@@ -55,20 +54,18 @@ namespace Utils {
         if ( !count )
             return ArrayView<T>{ nullptr, 0 };
 
-        std::byte *ptr = allocator.allocate( count * sizeof( T ) , alignof( T ) );
-
-        T *itr = reinterpret_cast< T* >( ptr );
-        std::fill_n( itr, count, initVal );
-        return ArrayView<T>{ reinterpret_cast< T*>( ptr ), count };
+        Utils::ArrayView<T> arr = makeArrayView<T>( allocator, count );
+        std::fill_n( arr.data(), arr.size(), initVal );
+        return arr;
     }
 
     template <typename T>
     inline Utils::ArrayView<T> makeArrayView( Utils::Allocator &allocator, std::initializer_list<T> elems ) 
     {
-        std::byte *ptr = allocator.allocate( elems.size() * sizeof( T ) , alignof( T ) );
+        std::uintptr_t ptr = allocator.allocate( elems.size() * sizeof( T ) , alignof( T ) );
         T *iter = reinterpret_cast< T* >( ptr );
         for ( const auto &elem : elems ) {
-            new (iter)T( elem );
+            *iter = elem;
             iter++;
         }
         return ArrayView<T>{ reinterpret_cast< T* >( ptr ), elems.size() };

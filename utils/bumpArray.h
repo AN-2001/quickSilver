@@ -42,10 +42,10 @@ namespace Utils {
         template <typename... Args >
         void bump( Args &...args ) noexcept 
         {
-            std::byte *alloc = m_allocator.allocate( sizeof( T ), alignof( T ) );
+            std::uintptr_t alloc = m_allocator.allocate( sizeof( T ), alignof( T ) );
             if ( !m_base )
                 m_base = reinterpret_cast<T*>( alloc );
-            new ( alloc )T( std::forward<Args>( args )... );
+            new ( reinterpret_cast< T* >( alloc ) )T( std::forward<Args>( args )... );
             m_count++;
         }
 
