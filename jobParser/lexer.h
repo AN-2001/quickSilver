@@ -35,7 +35,7 @@ namespace Json {
             std::size_t &m_cursor;
             bool &m_eof;
 
-            [[nodiscard]] std::optional< Json::Error > populate() noexcept 
+            [[nodiscard]] Json::Error populate() noexcept 
             {
                 m_cursor = 0;
                 if ( m_eof )
@@ -48,7 +48,7 @@ namespace Json {
                     m_eof = true;
                     return Json::Error::UnexpectedEof;
                 }
-                return std::nullopt;
+                return Json::Error::NoError;
             }
                 
 
@@ -65,8 +65,8 @@ namespace Json {
             {
                 if ( m_cursor == std::size_t( m_size ) ) {
                     auto res = populate();
-                    if ( res )
-                        return std::unexpected( *res );
+                    if ( res != Json::Error::NoError )
+                        return std::unexpected( res );
                 }
                 return m_buff[ m_cursor ];
             }
@@ -75,8 +75,8 @@ namespace Json {
             {
                 if ( m_cursor == std::size_t( m_size ) ) {
                     auto res = populate();
-                    if ( res )
-                        return std::unexpected( *res );
+                    if ( res != Json::Error::NoError )
+                        return std::unexpected( res );
                 }
                 return m_buff[ m_cursor++ ];
             }
