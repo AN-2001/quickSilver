@@ -1,4 +1,5 @@
 #include "bfs.h"
+#include "utils/arrayView.h"
 #include "utils/job.h"
 #include "utils/serializer.h"
 #include <cstddef>
@@ -13,7 +14,7 @@ void Algorithms::Bfs::run() noexcept
         return;
     uint16_t source = static_cast< uint16_t > ( m_source );
     uint16_t distance = 0;
-    Utils::RingBuffer< uint16_t > bfsQueue( m_allocator, m_graph.numVertices );
+    Utils::RingBuffer< uint16_t > bfsQueue( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices + 1 ) );
     Utils::ArrayView< uint16_t > visited( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices, 0 ) );
 
     if ( !bfsQueue.push( source ) ) 

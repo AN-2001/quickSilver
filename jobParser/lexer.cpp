@@ -24,6 +24,16 @@ namespace {
         return std::unexpected< std::errc >( ec );
     }
 
+    inline bool isSpace(char c) noexcept
+    {
+        return c == ' ' || c == '\n' || c == '\r' || c == '\t';
+    }
+
+    inline bool isDigit(char c) noexcept
+    {
+        return c >= '0' && c <= '9';
+    }
+
 };
 
 std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken() noexcept
@@ -36,7 +46,7 @@ std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken()
             return Token::Eof;
         return std::unexpected( c.error() );
     }
-    while ( std::isspace( *c ) ) {
+    while ( isSpace( *c ) ) {
         c = reader.consume();
         if ( !c ) {
             if ( c.error() == Json::Error::UnexpectedEof )
@@ -75,7 +85,7 @@ std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken()
         if ( !peek )
             return std::unexpected( peek.error() );
 
-        while ( !std::isspace(*peek) ) {
+        while ( !isSpace(*peek) ) {
             if ( *peek == '[' || *peek == ']' ||
                  *peek == '{' || *peek == '}' ||
                  *peek == ',' || *peek == ':' )
@@ -101,7 +111,7 @@ std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken()
         return std::unexpected( Json::Error::UnknownToken );
     }
 
-    if ( std::isdigit( *c ) || c == '-' ) {
+    if ( isDigit( *c ) || c == '-' ) {
         auto populator = Json::Lexer::ScratchPopulator( *this );
         populator.add( *c );
         auto peek = reader.peek();
@@ -109,7 +119,7 @@ std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken()
         if ( !peek )
             return std::unexpected( peek.error() );
 
-        while ( !std::isspace(*peek) ) {
+        while ( !isSpace(*peek) ) {
             if ( *peek == '[' || *peek == ']' ||
                  *peek == '{' || *peek == '}' ||
                  *peek == ',' || *peek == ':' )

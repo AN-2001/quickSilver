@@ -1,8 +1,10 @@
 
 #pragma once
 
+#include "connections/metricsEvents.h"
 #include "jobBuilder/jobPipeline.h"
 #include "spmcQueue.h"
+#include "mpscQueue.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 #include <array>
@@ -17,11 +19,12 @@
 #include <sys/mman.h>
 #include "utils/arena.h"
 #include "utils/allocator.h"
+#include "utils/serializer.h"
+#include "connections/metricsCollector.h"
 
 namespace Connections {
 
-    template <std::size_t N>
-    inline void workerFunction( std::size_t threadId, SpmcQueue< N > &queue )
+    inline void workerFunction( std::size_t threadId, SpmcQueue<> &jobQueue, MpscQueue<> &eventQueue )
     {
         using namespace Utils;
 
@@ -35,28 +38,95 @@ namespace Connections {
         while ( true ) {
             {
                 Utils::Allocator allocator( arena );
-                auto job = queue.pop();
-                JobTools::JobPipeline pipeline( job, allocator );
+                auto job = jobQueue.pop();
+                JobTools::JobPipeline pipeline( job, allocator, &eventQueue );
                 pipeline.execute();
             }
         }
 
     }
 
-    template <std::size_t NumThreads = 16, std::size_t QueueSize = 4096 * 2 >
+    inline void metricsFunction( std::size_t threadId, MpscQueue<> &queue )
+    {
+        MetricsCollector<> totalCollector;
+        MetricsCollector<> parseCollector;
+        MetricsCollector<> validateCollector;
+        MetricsCollector<> buildCollector;
+        MetricsCollector<> algoCollector;
+
+        using namespace Utils;
+
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET( ( threadId % 4 ) , &cpuset);
+        sched_setaffinity(0, sizeof(cpuset), &cpuset);
+
+        while ( true ) {
+            MetricsEvent event = queue.pop();
+            switch ( event.type ) {
+                case MetricsEventType::MetricsRequest: {
+                    Utils::Serializer serializer( event.job );
+                    serializer << R"JSON({"status":"OK","jobCount":)JSON"
+                        << std::to_string( totalCollector.getCount() ) << ",";
+
+                    totalCollector.serialize( serializer, "total" );
+                    serializer << ",";
+
+                    parseCollector.serialize( serializer, "parse" );
+                    serializer << ",";
+
+                    validateCollector.serialize( serializer, "validate" );
+                    serializer << ",";
+
+                    buildCollector.serialize( serializer, "build" );
+                    serializer << ",";
+
+                    algoCollector.serialize( serializer, "algo" );
+                    serializer << R"JSON(})JSON";
+                    break;
+                }
+
+                case MetricsEventType::PostJobLatency:
+                    totalCollector.addLatency( event.duration );
+                    break;
+                case MetricsEventType::PostJobParseLatency:
+                    parseCollector.addLatency( event.duration );
+                    break;
+                case MetricsEventType::PostJobValidateLatency:
+                    validateCollector.addLatency( event.duration );
+                    break;
+                case MetricsEventType::PostJobBuildLatency:
+                    buildCollector.addLatency( event.duration );
+                    break;
+                case MetricsEventType::PostJobAlgoLatency:
+                    algoCollector.addLatency( event.duration );
+                    break;
+                case MetricsEventType::ShutDownMetricsThread:
+                default:
+                    return;
+            }
+        }
+
+    }
+
+    template <std::size_t NumThreads = 16 >
         class ServerTopology {
-            SpmcQueue< QueueSize > m_queue;
+            SpmcQueue<> m_queue;
+            MpscQueue<> m_eventQueue;
             std::array< std::thread, NumThreads > pool;
+            std::thread metricsThread;
 
             public:
             ServerTopology() {
+                metricsThread = std::thread( metricsFunction, 0, std::ref( m_eventQueue ) );
                 for ( std::size_t i = 0; i < pool.size(); ++i )
-                    pool[ i ] = std::thread( workerFunction< QueueSize >, i, std::ref( m_queue ) );
+                    pool[ i ] = std::thread( workerFunction, i, std::ref( m_queue ), std::ref( m_eventQueue ) );
             }
 
             ~ServerTopology() {
                 for ( std::size_t i = 0; i < pool.size(); ++i )
                     pool[ i ].join();
+                metricsThread.join();
             }
 
             int start() noexcept

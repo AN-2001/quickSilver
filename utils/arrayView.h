@@ -4,46 +4,18 @@
 #include <algorithm>
 #include <cstddef>
 #include <initializer_list>
+#include <span>
 
 namespace Utils {
 
     template <typename T>
-    struct ArrayView 
-    {
-        T *m_base{};
-        std::size_t m_count{};
-
-        [[nodiscard]] T &operator[]( std::size_t idx ) const noexcept
-        {
-            return m_base[ idx ];
-        }
-
-        [[nodiscard]] std::size_t size() const noexcept 
-        {
-            return m_count;
-        }
-
-        [[nodiscard]] T* data() const noexcept
-        {
-            return m_base;
-        }
-
-        [[nodiscard]] T* begin() const noexcept
-        {
-            return m_base;
-        }
-
-        [[nodiscard]] T* end() const noexcept
-        {
-            return m_base + m_count;
-        }
-    };
+    using ArrayView = std::span< T >;
 
     template <typename T>
     inline Utils::ArrayView<T> makeArrayView( Utils::Allocator &allocator, std::size_t count ) 
     {
         if ( !count )
-            return ArrayView<T>{ nullptr, 0 };
+            return ArrayView<T>{};
         return ArrayView<T>{ reinterpret_cast< T* >( allocator.allocate( count * sizeof( T ) ,
                                                      alignof( T ) ) ),
                              count };
@@ -53,8 +25,7 @@ namespace Utils {
     inline Utils::ArrayView<T> makeArrayView( Utils::Allocator &allocator, std::size_t count, const T& initVal ) 
     {
         if ( !count )
-            return ArrayView<T>{ nullptr, 0 };
-
+            return ArrayView<T>{};
         Utils::ArrayView<T> arr = makeArrayView<T>( allocator, count );
         std::fill_n( arr.data(), arr.size(), initVal );
         return arr;

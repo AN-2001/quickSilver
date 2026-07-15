@@ -11,7 +11,7 @@
 
 namespace Json {
     class Lexer {
-        static constexpr std::size_t g_buffSize = 1024;
+        static constexpr std::size_t g_buffSize = 4096;
 
         Utils::Job &m_job;
 

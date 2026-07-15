@@ -1,48 +1,59 @@
 #pragma once
 
-#include "utils/job.h"
-#include <atomic>
+#include "metricsEvents.h"
+
+#include <array>
+#include <condition_variable>
 #include <cstddef>
-#include <atomic>
+#include <mutex>
 
 namespace Connections {
-    static constexpr int g_cacheLineSize = 64;
 
-    template < std::size_t N = 256 >
-    struct MpscQueue {
-        alignas( g_cacheLineSize ) std::array< int, N > buff;
-        alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
-        alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
+template <std::size_t N = 1024>
+struct MpscQueue {
+    static_assert((N & (N - 1)) == 0, "N must be a power of two");
 
-        struct alignas( g_cacheLineSize ) slot 
+    std::array<MetricsEvent, N> buff;
+
+    std::size_t head = 0;
+    std::size_t tail = 0;
+
+    MetricsEvent slot;
+
+    std::mutex mutex;
+    std::condition_variable cv;
+
+    void push(MetricsEvent&& event) noexcept
+    {
         {
-            int val;
-        } m_slot;
+            std::lock_guard lock(mutex);
 
+            const auto next = (head + 1) & (N - 1);
 
-        void push( int &&job ) noexcept {
-            std::size_t oldValue, newValue, tailValue;
+            // Full queue: preserve non-blocking producer behavior
+            if (next == tail)
+                return;
 
-            do {
-                oldValue = head.load( std::memory_order_acquire );
-                tailValue = tail.load( std::memory_order_acquire );
-                newValue = (oldValue + 1) & ( N - 1 );
-            } while ( newValue == tailValue || !head.compare_exchange_weak( oldValue, newValue, std::memory_order_acq_rel ) );
-
-            buff[ oldValue ] = std::move( job );
-            head.store( newValue, std::memory_order_release );
+            buff[head] = std::move(event);
+            head = next;
         }
 
-        [[nodiscard]] int &&pop() noexcept {
-            std::size_t headValue, oldValue, newValue;
-            do {
-                oldValue = tail.load( std::memory_order_relaxed );
-                headValue = head.load( std::memory_order_acquire );
-                newValue = (oldValue + 1) & ( N - 1 );
-            } while ( oldValue == headValue );
-            m_slot.val = std::move( buff[ oldValue ] );
-            tail.store( newValue, std::memory_order_release );
-            return std::move( m_slot.val );
-        }
-    };
+        cv.notify_one();
+    }
+
+    [[nodiscard]] MetricsEvent&& pop() noexcept
+    {
+        std::unique_lock lock(mutex);
+
+        cv.wait(lock, [&] {
+            return tail != head;
+        });
+
+        slot = std::move(buff[tail]);
+        tail = (tail + 1) & (N - 1);
+
+        return std::move(slot);
+    }
+};
+
 }

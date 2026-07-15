@@ -6,10 +6,11 @@
 #include <atomic>
 
 namespace Connections {
-    static constexpr int g_cacheLineSize = 64;
 
-    template < std::size_t N = 256 >
+    template < std::size_t N = 1024 >
     struct SpmcQueue {
+        static constexpr int g_cacheLineSize = 64;
+
         alignas( g_cacheLineSize ) std::array< Utils::Job, N > buff;
         alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
         alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
