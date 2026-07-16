@@ -13,12 +13,13 @@
 
 #include "utils/managedFd.h"
 #include "utils/jobState.h"
+#include <chrono>
 #include <sys/types.h>
 #include <unistd.h>
 #include <utility>
 
 namespace Utils {
-    class alignas( 64 ) Job {
+    class Job {
         private:
             ManagedFd m_readFd;
             ManagedFd m_writeFd;
@@ -26,6 +27,7 @@ namespace Utils {
         public:
 
             Utils::JobState m_jobState;
+            std::chrono::steady_clock::time_point m_acceptTime;
 
             Job() 
                : m_readFd(BorrowedFd(-1)), m_writeFd( BorrowedFd(-1) )
@@ -43,7 +45,9 @@ namespace Utils {
 
             Job( Job &&other ) noexcept
                 : m_readFd( std::move( other.m_readFd ) ),
-                  m_writeFd( std::move( other.m_writeFd ) )
+                  m_writeFd( std::move( other.m_writeFd ) ),
+                  m_jobState( std::move( other.m_jobState ) ),
+                  m_acceptTime( std::move( other.m_acceptTime ) )
             {}
 
 
@@ -56,6 +60,8 @@ namespace Utils {
 
                 m_readFd = std::move( other.m_readFd );
                 m_writeFd = std::move( other.m_writeFd );
+                m_jobState = std::move( other.m_jobState );
+                m_acceptTime = std::move( other.m_acceptTime );
 
                 return *this;
             }

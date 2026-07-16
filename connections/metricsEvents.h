@@ -5,6 +5,7 @@ namespace Connections {
 
     enum class MetricsEventType {
         MetricsRequest,
+        SchedJobLatency,
         PostJobLatency,
         PostJobParseLatency,
         PostJobValidateLatency,

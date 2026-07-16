@@ -1,13 +1,13 @@
 
 #pragma once
 
-#include "connections/metricsEvents.h"
 #include "jobBuilder/jobPipeline.h"
 #include "spmcQueue.h"
 #include "mpscQueue.h"
 #include "utils/job.h"
 #include "utils/managedFd.h"
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstring>
 #include <thread>
@@ -19,7 +19,6 @@
 #include <sys/mman.h>
 #include "utils/arena.h"
 #include "utils/allocator.h"
-#include "utils/serializer.h"
 #include "connections/metricsCollector.h"
 
 namespace Connections {
@@ -48,65 +47,9 @@ namespace Connections {
 
     inline void metricsFunction( std::size_t threadId, MpscQueue<> &queue )
     {
-        MetricsCollector<> totalCollector;
-        MetricsCollector<> parseCollector;
-        MetricsCollector<> validateCollector;
-        MetricsCollector<> buildCollector;
-        MetricsCollector<> algoCollector;
-
-        using namespace Utils;
-
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET( ( threadId % 4 ) , &cpuset);
-        sched_setaffinity(0, sizeof(cpuset), &cpuset);
-
-        while ( true ) {
-            MetricsEvent event = queue.pop();
-            switch ( event.type ) {
-                case MetricsEventType::MetricsRequest: {
-                    Utils::Serializer serializer( event.job );
-                    serializer << R"JSON({"status":"OK","jobCount":)JSON"
-                        << std::to_string( totalCollector.getCount() ) << ",";
-
-                    totalCollector.serialize( serializer, "total" );
-                    serializer << ",";
-
-                    parseCollector.serialize( serializer, "parse" );
-                    serializer << ",";
-
-                    validateCollector.serialize( serializer, "validate" );
-                    serializer << ",";
-
-                    buildCollector.serialize( serializer, "build" );
-                    serializer << ",";
-
-                    algoCollector.serialize( serializer, "algo" );
-                    serializer << R"JSON(})JSON";
-                    break;
-                }
-
-                case MetricsEventType::PostJobLatency:
-                    totalCollector.addLatency( event.duration );
-                    break;
-                case MetricsEventType::PostJobParseLatency:
-                    parseCollector.addLatency( event.duration );
-                    break;
-                case MetricsEventType::PostJobValidateLatency:
-                    validateCollector.addLatency( event.duration );
-                    break;
-                case MetricsEventType::PostJobBuildLatency:
-                    buildCollector.addLatency( event.duration );
-                    break;
-                case MetricsEventType::PostJobAlgoLatency:
-                    algoCollector.addLatency( event.duration );
-                    break;
-                case MetricsEventType::ShutDownMetricsThread:
-                default:
-                    return;
-            }
-        }
-
+        (void)threadId; 
+        MetricsCollector collector( queue );
+        collector.collect();
     }
 
     template <std::size_t NumThreads = 16 >
@@ -178,6 +121,7 @@ namespace Connections {
                     }
 
                     Utils::Job job{ Utils::OwnedFd( client_fd ), Utils::BorrowedFd( client_fd ) };
+                    job.m_acceptTime = std::chrono::steady_clock::now();
                     m_queue.push( std::move( job ) );
                 }
 

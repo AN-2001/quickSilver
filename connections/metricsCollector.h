@@ -1,24 +1,60 @@
 #pragma once
 
+#include "connections/mpscQueue.h"
 #include "utils/ringBuff.h"
 #include "utils/serializer.h"
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <numeric>
 #include <string>
 #include <string_view>
 namespace Connections {
 
     template <std::size_t NumSamples = 1024 >
-    struct MetricsCollector {
+    struct ThroughputCollector
+    {
+        using TimeStamp = std::chrono::steady_clock::time_point;
+        std::array< TimeStamp, NumSamples > m_ringBuffStorage{};
+        Utils::RingBuffer< TimeStamp > m_ringBuff{ m_ringBuffStorage };
+        std::size_t m_count{};
+
+        void postJob() noexcept {
+            auto now = std::chrono::steady_clock::now();
+            if ( m_ringBuff.full() )
+                m_ringBuff.pop();
+            m_ringBuff.push( now );
+            m_count++;
+        }
+
+        [[nodiscard]] auto inline getThroughput() noexcept {
+            auto now = std::chrono::steady_clock::now();
+            while ( !m_ringBuff.empty() ) {
+                TimeStamp front = m_ringBuff.front();
+                if (now - front > std::chrono::seconds(1))
+                    m_ringBuff.pop();
+                else
+                    break;
+            }
+            return m_ringBuff.size();
+        }
+
+        void inline serialize( Utils::Serializer &serializer, std::string_view name ) noexcept {
+            serializer << "\"" << name << "\"" << ":" << std::to_string( getThroughput() );
+        }
+
+    };
+
+    template <std::size_t NumSamples = 1024 >
+    struct LatencyCollector {
         std::array< double, NumSamples > m_ringBuffStorage{};
         Utils::RingBuffer< double > m_ringBuff{ m_ringBuffStorage };
         std::size_t m_count{};
 
         void addLatency( double latency ) noexcept {
             if ( m_ringBuff.full() )
-                (void)m_ringBuff.pop();
-            (void)m_ringBuff.push( latency );
+                m_ringBuff.pop();
+            m_ringBuff.push( latency );
             m_count++;
         }
 
@@ -56,4 +92,86 @@ namespace Connections {
         }
 
     };
+
+    class MetricsCollector {
+        Connections::MpscQueue<> &m_eventQueue;
+
+        ThroughputCollector<> throughputCollector{};
+        LatencyCollector<> schedCollector{};
+        LatencyCollector<> totalCollector{};
+        LatencyCollector<> parseCollector{};
+        LatencyCollector<> validateCollector{};
+        LatencyCollector<> buildCollector{};
+        LatencyCollector<> algoCollector{};
+
+        public:
+            MetricsCollector( Connections::MpscQueue<> &queue ) :
+                m_eventQueue( queue )
+            {}
+
+
+            void collect() noexcept {
+                using namespace std::string_view_literals;
+                while ( true ) {
+                    MetricsEvent event = m_eventQueue.pop();
+                    switch ( event.type ) {
+                        case MetricsEventType::MetricsRequest: {
+                            Utils::Serializer serializer( event.job );
+                            serializer << R"JSON({"status":"OK","jobCount":)JSON"
+                                << std::to_string( totalCollector.getCount() ) << ",";
+
+                            throughputCollector.serialize( serializer, "throughput"sv );
+                            serializer << ",";
+
+                            schedCollector.serialize( serializer, "sched"sv );
+                            serializer << ",";
+
+                            totalCollector.serialize( serializer, "total_execution"sv );
+                            serializer << ",";
+
+                            parseCollector.serialize( serializer, "parse"sv );
+                            serializer << ",";
+
+                            validateCollector.serialize( serializer, "validate"sv );
+                            serializer << ",";
+
+                            buildCollector.serialize( serializer, "build"sv );
+                            serializer << ",";
+
+                            algoCollector.serialize( serializer, "algo"sv );
+                            serializer << R"JSON(})JSON";
+                            break;
+                        }
+
+                        case MetricsEventType::SchedJobLatency:
+                            schedCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::PostJobLatency:
+                            throughputCollector.postJob();
+                            totalCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::PostJobParseLatency:
+                            parseCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::PostJobValidateLatency:
+                            validateCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::PostJobBuildLatency:
+                            buildCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::PostJobAlgoLatency:
+                            algoCollector.addLatency( event.duration );
+                            break;
+                        case MetricsEventType::ShutDownMetricsThread:
+                        default:
+                            return;
+                    }
+                }
+            }
+
+
+
+    };
+
+
 };

@@ -17,8 +17,7 @@ void Algorithms::Bfs::run() noexcept
     Utils::RingBuffer< uint16_t > bfsQueue( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices + 1 ) );
     Utils::ArrayView< uint16_t > visited( Utils::makeArrayView<uint16_t>( m_allocator, m_graph.numVertices, 0 ) );
 
-    if ( !bfsQueue.push( source ) ) 
-        return;
+    bfsQueue.push( source );
     
     visited[ source ] = 1;
     m_distances[ source ] = distance;
@@ -30,20 +29,17 @@ void Algorithms::Bfs::run() noexcept
 
         for ( std::size_t k = 0; k < size; ++k ) {
             auto v = bfsQueue.front();
-            if ( !v )
-                return;
-            for ( uint16_t i = m_graph.offsets[ *v ]; i < m_graph.offsets[ *v + 1 ]; ++i ) {
+            for ( uint16_t i = m_graph.offsets[ v ]; i < m_graph.offsets[ v + 1 ]; ++i ) {
                 uint16_t n = m_graph.adj[ i ];
                 if ( !visited[ n ] ) {
                     visited[ n ] = 1;
-                    if ( !bfsQueue.push( n ) )
-                        return;
+                    bfsQueue.push( n );
 
                     m_distances[ n ] = distance;
-                    m_parents[ n ] = *v;
+                    m_parents[ n ] = v;
                 }
             }
-            (void)bfsQueue.pop();
+            bfsQueue.pop();
         }
 
         distance++;
