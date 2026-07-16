@@ -9,7 +9,7 @@
 namespace Utils {
 
     class Serializer {
-        static constexpr std::size_t BUFF_SIZE = 1024;
+        static constexpr std::size_t BUFF_SIZE = 1024 * 32;
 
         std::array< char, BUFF_SIZE > m_buff;
         std::size_t m_pos{};

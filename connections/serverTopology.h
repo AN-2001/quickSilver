@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "connections/metricsEvents.h"
 #include "jobBuilder/jobPipeline.h"
 #include "spmcQueue.h"
 #include "mpscQueue.h"
@@ -25,19 +26,21 @@ namespace Connections {
 
     inline void workerFunction( std::size_t threadId, SpmcQueue<> &jobQueue, MpscQueue<> &eventQueue )
     {
+        (void)threadId;
         using namespace Utils;
-
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET( ( threadId % 4 ) , &cpuset);
-
-        sched_setaffinity(0, sizeof(cpuset), &cpuset);
-
         Utils::Arena arena{ 1_MB };
         while ( true ) {
             {
+                auto now = std::chrono::steady_clock::now();
+
                 Utils::Allocator allocator( arena );
                 auto job = jobQueue.pop();
+
+                auto afterPop = std::chrono::steady_clock::now();
+                double duration = std::chrono::duration< double > ( afterPop - now ).count();
+                eventQueue.push( { MetricsEventType::QueuePopLatency, {}, duration } ); 
+
+
                 JobTools::JobPipeline pipeline( job, allocator, &eventQueue );
                 pipeline.execute();
             }
@@ -45,10 +48,10 @@ namespace Connections {
 
     }
 
-    inline void metricsFunction( std::size_t threadId, MpscQueue<> &queue )
+    inline void metricsFunction( std::size_t threadId, MpscQueue<> &eventQueue, SpmcQueue<> &jobQueue )
     {
-        (void)threadId; 
-        MetricsCollector collector( queue );
+        (void)(threadId);
+        MetricsCollector collector( eventQueue, jobQueue );
         collector.collect();
     }
 
@@ -61,7 +64,7 @@ namespace Connections {
 
             public:
             ServerTopology() {
-                metricsThread = std::thread( metricsFunction, 0, std::ref( m_eventQueue ) );
+                metricsThread = std::thread( metricsFunction, 0, std::ref( m_eventQueue ), std::ref( m_queue ) );
                 for ( std::size_t i = 0; i < pool.size(); ++i )
                     pool[ i ] = std::thread( workerFunction, i, std::ref( m_queue ), std::ref( m_eventQueue ) );
             }
@@ -121,7 +124,6 @@ namespace Connections {
                     }
 
                     Utils::Job job{ Utils::OwnedFd( client_fd ), Utils::BorrowedFd( client_fd ) };
-                    job.m_acceptTime = std::chrono::steady_clock::now();
                     m_queue.push( std::move( job ) );
                 }
 

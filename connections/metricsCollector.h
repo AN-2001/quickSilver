@@ -1,6 +1,7 @@
 #pragma once
 
 #include "connections/mpscQueue.h"
+#include "connections/spmcQueue.h"
 #include "utils/ringBuff.h"
 #include "utils/serializer.h"
 #include <algorithm>
@@ -95,8 +96,10 @@ namespace Connections {
 
     class MetricsCollector {
         Connections::MpscQueue<> &m_eventQueue;
+        Connections::SpmcQueue<> &m_jobQueue;
 
         ThroughputCollector<> throughputCollector{};
+        LatencyCollector<> popCollector{};
         LatencyCollector<> schedCollector{};
         LatencyCollector<> totalCollector{};
         LatencyCollector<> parseCollector{};
@@ -105,8 +108,9 @@ namespace Connections {
         LatencyCollector<> algoCollector{};
 
         public:
-            MetricsCollector( Connections::MpscQueue<> &queue ) :
-                m_eventQueue( queue )
+            MetricsCollector( Connections::MpscQueue<> &eventQueue, Connections::SpmcQueue<> &jobQueue ) :
+                m_eventQueue( eventQueue ),
+                m_jobQueue( jobQueue )
             {}
 
 
@@ -121,6 +125,12 @@ namespace Connections {
                                 << std::to_string( totalCollector.getCount() ) << ",";
 
                             throughputCollector.serialize( serializer, "throughput"sv );
+                            serializer << ",";
+
+                            serializer << "\"jobQueueSize\":" << std::to_string( m_jobQueue.size() );
+                            serializer << ",";
+
+                            popCollector.serialize( serializer, "pop"sv );
                             serializer << ",";
 
                             schedCollector.serialize( serializer, "sched"sv );
@@ -143,6 +153,9 @@ namespace Connections {
                             break;
                         }
 
+                        case MetricsEventType::QueuePopLatency:
+                            popCollector.addLatency( event.duration );
+                            break;
                         case MetricsEventType::SchedJobLatency:
                             schedCollector.addLatency( event.duration );
                             break;

@@ -2,6 +2,7 @@
 
 #include "utils/job.h"
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <atomic>
 
@@ -15,6 +16,12 @@ namespace Connections {
         alignas( g_cacheLineSize ) std::atomic< std::size_t > head{};
         alignas( g_cacheLineSize ) std::atomic< std::size_t > tail{};
 
+        [[nodiscard]] std::size_t size() const noexcept {
+            std::size_t h = head.load( std::memory_order_relaxed );
+            std::size_t t = head.load( std::memory_order_relaxed );
+            return ( h - t ) & ( N - 1 );
+        }
+
         void push( Utils::Job &&job ) noexcept {
             std::size_t newValue, tailValue, oldValue;
             do {
@@ -22,6 +29,7 @@ namespace Connections {
                 newValue = ( oldValue + 1 ) & ( N - 1 );
                 tailValue = tail.load( std::memory_order_acquire );
             } while ( newValue == tailValue );
+            job.m_acceptTime = std::chrono::steady_clock::now();
             buff[ oldValue ] = std::move( job );
             head.store( newValue, std::memory_order_release );
         }
