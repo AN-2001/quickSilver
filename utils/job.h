@@ -46,7 +46,6 @@ namespace Utils {
             Job( Job &&other ) noexcept
                 : m_readFd( std::move( other.m_readFd ) ),
                   m_writeFd( std::move( other.m_writeFd ) ),
-                  m_jobState( std::move( other.m_jobState ) ),
                   m_acceptTime( std::move( other.m_acceptTime ) )
             {}
 
@@ -60,7 +59,6 @@ namespace Utils {
 
                 m_readFd = std::move( other.m_readFd );
                 m_writeFd = std::move( other.m_writeFd );
-                m_jobState = std::move( other.m_jobState );
                 m_acceptTime = std::move( other.m_acceptTime );
 
                 return *this;
