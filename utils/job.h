@@ -69,6 +69,10 @@ namespace Utils {
             Job( const Job &other ) = delete;
             Job &operator=( const Job &other ) = delete;
 
+            [[nodiscard]] bool isStopJob() const noexcept {
+                return m_readFd.get() == Utils::INVALID_FD;
+            }
+
             [[nodiscard]] ssize_t read( void *buff, const size_t size ) noexcept
             {
                 return ::read( m_readFd.get(), buff, size );

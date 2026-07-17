@@ -14,12 +14,13 @@
 
 void JobTools::JobPipeline::execute() noexcept
 {
-    auto schedTime = std::chrono::steady_clock::now();
-    double schedLatency = std::chrono::duration< double >( schedTime - m_job.m_acceptTime ).count();
-    m_eventQueue -> push( { Connections::MetricsEventType::SchedJobLatency, {}, schedLatency }  );
+    if ( m_eventQueue ) {
+        auto schedTime = std::chrono::steady_clock::now();
+        double schedLatency = std::chrono::duration< double >( schedTime - m_job.m_acceptTime ).count();
+        m_eventQueue -> push( { Connections::MetricsEventType::SchedJobLatency, {}, schedLatency }  );
+    }
 
     JobTools::Timer jobTimer( m_eventQueue, Connections::MetricsEventType::PostJobLatency );
-
     Json::Lexer lexer( m_job );
     Json::Parser parser( lexer, m_allocator );
     JobTools::Validator validator( parser );
@@ -53,6 +54,12 @@ void JobTools::JobPipeline::execute() noexcept
     }
 
     if ( m_job.m_jobState.type == Utils::JobType::Metrics ) {
+        if ( !m_eventQueue ) {
+            Utils::Serializer serializer( m_job );
+            serializer << R"JSON({"status":"Not supported","error":"Metrics jobs aren't supported."})JSON";
+            return;
+        }
+
         m_eventQueue -> push( { Connections::MetricsEventType::MetricsRequest, std::move( m_job ), 0 } );
         return;
     }

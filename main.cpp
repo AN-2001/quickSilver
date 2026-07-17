@@ -3,5 +3,5 @@
 int main()
 {
     Connections::ServerTopology< 8 > topology{};
-    topology.start();
+    return topology.start();
 }

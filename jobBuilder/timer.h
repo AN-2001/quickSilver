@@ -19,6 +19,8 @@ namespace JobTools {
 
             ~Timer() 
             {
+                if ( !m_eventQueue )
+                    return;
                 auto now = std::chrono::steady_clock::now();
                 double duration = std::chrono::duration< double >( now - m_now ).count();
                 m_eventQueue -> push( { m_event, {}, duration } );

@@ -9,7 +9,9 @@
 #include "utils/managedFd.h"
 #include <array>
 #include <chrono>
+#include <csignal>
 #include <cstddef>
+#include <cstdio>
 #include <cstring>
 #include <thread>
 #include <arpa/inet.h>
@@ -24,9 +26,18 @@
 
 namespace Connections {
 
+    static bool g_serverShouldStop;
+
+    inline void handleSignal( int ) {
+        printf( "RECEIVED STOP SIGNAL\n" );  
+        g_serverShouldStop = true;
+    }
+
     inline void workerFunction( std::size_t threadId, SpmcQueue<> &jobQueue, MpscQueue<> &eventQueue )
     {
-        (void)threadId;
+
+        printf( "WORKER %lu STARTED\n", threadId );
+
         using namespace Utils;
         Utils::Arena arena{ 1_MB };
         while ( true ) {
@@ -34,12 +45,15 @@ namespace Connections {
                 auto now = std::chrono::steady_clock::now();
 
                 Utils::Allocator allocator( arena );
-                auto job = jobQueue.pop();
 
+                auto job = jobQueue.pop(); 
+                if ( job.isStopJob() ) {
+                    printf( "WORKER %lu IS EXITING\n", threadId );
+                    return;
+                }
                 auto afterPop = std::chrono::steady_clock::now();
                 double duration = std::chrono::duration< double > ( afterPop - now ).count();
                 eventQueue.push( { MetricsEventType::QueuePopLatency, {}, duration } ); 
-
 
                 JobTools::JobPipeline pipeline( job, allocator, &eventQueue );
                 pipeline.execute();
@@ -52,7 +66,10 @@ namespace Connections {
     {
         (void)(threadId);
         MetricsCollector collector( eventQueue, jobQueue );
+        printf( "METRICS THREAD STARTED\n" );
+
         collector.collect();
+        printf( "METRICS THREAD IS EXITING\n" );
     }
 
     template <std::size_t NumThreads = 16 >
@@ -64,6 +81,8 @@ namespace Connections {
 
             public:
             ServerTopology() {
+                std::signal( SIGTERM, handleSignal );
+
                 metricsThread = std::thread( metricsFunction, 0, std::ref( m_eventQueue ), std::ref( m_queue ) );
                 for ( std::size_t i = 0; i < pool.size(); ++i )
                     pool[ i ] = std::thread( workerFunction, i, std::ref( m_queue ), std::ref( m_eventQueue ) );
@@ -73,12 +92,12 @@ namespace Connections {
                 for ( std::size_t i = 0; i < pool.size(); ++i )
                     pool[ i ].join();
                 metricsThread.join();
+                printf( "SERVER IS EXITING\n" );  
             }
 
             int start() noexcept
             {
-                struct sockaddr_in server_addr, client_addr;
-                socklen_t client_len = sizeof( client_addr );
+                struct sockaddr_in server_addr;
 
                 int listen_fd = socket( AF_INET, SOCK_STREAM, 0 );
                 if ( listen_fd < 0 ) {
@@ -110,24 +129,42 @@ namespace Connections {
                     return EXIT_FAILURE;
                 }
 
-                ::printf( "Listening on port %d...\n", 8080 );
-                while ( true ) {
-                    client_len = sizeof( client_addr );
-                    int client_fd = ::accept(
-                            listen_fd,
-                            reinterpret_cast< sockaddr* >( &client_addr ),
-                            &client_len);
+                ::printf( "Server is listening on port %d...\n", 8080 );
 
-                    if ( client_fd < 0 ) {
-                        ::perror( "accept" );
+
+                fd_set readfds;
+                FD_ZERO(&readfds);
+                FD_SET(listen_fd, &readfds);
+
+                struct timeval timeout;
+                timeout.tv_sec = 1;   // 1 second
+                timeout.tv_usec = 0;
+
+                while ( !g_serverShouldStop ) {
+                    int ret = select(listen_fd + 1, &readfds, nullptr, nullptr, &timeout);
+                    if ( ret < 0 ) {
+                        perror( "select" );
                         continue;
                     }
 
-                    Utils::Job job{ Utils::OwnedFd( client_fd ), Utils::BorrowedFd( client_fd ) };
-                    m_queue.push( std::move( job ) );
+                    if (ret > 0 && FD_ISSET(listen_fd, &readfds)) {
+                        int client_fd = accept(listen_fd, nullptr, nullptr);
+                        if ( client_fd < 0 ) {
+                            perror( "accept" );
+                            continue;
+                        }
+
+                        Utils::Job job{ Utils::OwnedFd( client_fd ), Utils::BorrowedFd( client_fd ) };
+                        m_queue.push( std::move( job ) );
+                    }
+
                 }
 
+                for ( int i = 0; i < 100; ++i )
+                    m_queue.push( Utils::Job() );
+                m_eventQueue.push( { MetricsEventType::ShutDownMetricsThread, {}, 0 } );
                 ::close( listen_fd );
+                return 0;
             }
         };
 }

@@ -5,9 +5,11 @@ CXXFLAGS += -I..
 OBJECTS := bfs.o dfs.o
 ARCHIVE := libalgorithms.a
 
+LDFLAGS :=
 COVERAGE_FLAGS := --coverage -O0
 ifeq ($(COVERAGE),1)
-    CXXFLAGS := $(CXXFLAGS) $(COVERAGE_FLAGS)
+    CXXFLAGS += $(COVERAGE_FLAGS)
+    LDFLAGS += --coverage
 endif
 
 all: $(ARCHIVE)

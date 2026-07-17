@@ -9,7 +9,6 @@ PROJ := quicksilver
 
 LDFLAGS :=
 COVERAGE_FLAGS := --coverage -O0
-
 ifeq ($(COVERAGE),1)
     CXXFLAGS += $(COVERAGE_FLAGS)
     LDFLAGS += --coverage
@@ -26,7 +25,7 @@ coverage:
 	gcovr \
 		--root . \
 		--exclude 'deps/.*' \
-		--exclude '.*/deps/.*' \
+		--gcov-ignore-parse-errors=negative_hits.warn \
 		--html \
 		--html-details \
 		-o coverage/index.html

@@ -19,12 +19,12 @@ namespace Utils {
         int num;
     };
 
+    static constexpr int INVALID_FD = -1;
     using OwnedFd = TaggedFd<true>;
     using BorrowedFd = TaggedFd<false>;
 
     class ManagedFd {
 
-            static constexpr int g_invalidFd = -1;
             int m_fd;
             bool m_isOwned;
         public:
@@ -36,7 +36,7 @@ namespace Utils {
                 : m_fd( fd.num ), m_isOwned( false ) {}
 
             ManagedFd( ManagedFd &&other ) noexcept
-                : m_fd( std::exchange( other.m_fd, g_invalidFd ) ),
+                : m_fd( std::exchange( other.m_fd, INVALID_FD ) ),
                   m_isOwned( std::exchange( other.m_isOwned, false ) )
                 {}
 
@@ -44,17 +44,17 @@ namespace Utils {
             {
                 if ( this == &other )
                     return *this;
-                if ( m_isOwned && m_fd != g_invalidFd )
+                if ( m_isOwned && m_fd != INVALID_FD )
                     ::close( m_fd );
 
-                m_fd = std::exchange( other.m_fd, g_invalidFd );
+                m_fd = std::exchange( other.m_fd, INVALID_FD );
                 m_isOwned = std::exchange( other.m_isOwned, false );
                 return *this;
             }
 
             ~ManagedFd() noexcept
             {
-                if ( m_isOwned && m_fd != g_invalidFd )
+                if ( m_isOwned && m_fd != INVALID_FD )
                     ::close( m_fd );
             }
 

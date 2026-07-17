@@ -3,22 +3,26 @@ include ../common.mk
 CXXFLAGS += -I..
 SUBSYSTEMS := jobBuilder jobParser algorithms connections
 LIBS := $(foreach s,$(SUBSYSTEMS),../$(s)/lib$(s).a)
-OBJECTS := integration.o
-PROJ := integration
+INTEGRATION := quicksilver_system_integration 
+SERVER := quicksilver_as_server
 
 LDFLAGS :=
+COVERAGE_FLAGS := --coverage -O0
 ifeq ($(COVERAGE),1)
     CXXFLAGS += $(COVERAGE_FLAGS)
     LDFLAGS += --coverage
 endif
 
-all: $(PROJ)
+all: $(INTEGRATION) $(SERVER)
 
 test: all
-	./test.sh
+	./integration_tests.sh
 
-$(PROJ): $(OBJECTS) $(SUBSYSTEMS)
-	$(CXX) $(CXXFLAGS) $(OBJECTS) $(LIBS) $(LDFLAGS) -o $@
+$(INTEGRATION): quicksilver_system_integration.o $(SUBSYSTEMS)
+	$(CXX) $(CXXFLAGS) $@.o $(LIBS) $(LDFLAGS) -o $@
+
+$(SERVER): quicksilver_as_server.o  $(SUBSYSTEMS)
+	$(CXX) $(CXXFLAGS) $@.o $(LIBS) $(LDFLAGS) -o $@
 
 $(SUBSYSTEMS):
 	+$(MAKE) -C ../$@
@@ -29,4 +33,4 @@ $(SUBSYSTEMS):
 .PHONY: all clean $(SUBSYSTEMS)
 
 clean:
-	@rm -f $(OBJECTS) $(PROJ) *.gcno *.gcda
+	@rm -f *.o $(INTEGRATION) $(SERVER) *.gcno *.gcda
