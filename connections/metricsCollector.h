@@ -127,7 +127,7 @@ namespace Connections {
                             throughputCollector.serialize( serializer, "throughput"sv );
                             serializer << ",";
 
-                            serializer << "\"jobQueueSize\":" << std::to_string( m_jobQueue.size() );
+                            serializer << "\"queueDepth\":" << std::to_string( m_jobQueue.size() );
                             serializer << ",";
 
                             popCollector.serialize( serializer, "pop"sv );

@@ -26,7 +26,8 @@
 
 namespace Connections {
 
-    static bool g_serverShouldStop;
+    static volatile std::sig_atomic_t g_serverShouldStop = 0;
+
 
     inline void handleSignal( int ) {
         printf( "RECEIVED STOP SIGNAL\n" );  
@@ -132,15 +133,15 @@ namespace Connections {
                 ::printf( "Server is listening on port %d...\n", 8080 );
 
 
-                fd_set readfds;
-                FD_ZERO(&readfds);
-                FD_SET(listen_fd, &readfds);
-
-                struct timeval timeout;
-                timeout.tv_sec = 1;   // 1 second
-                timeout.tv_usec = 0;
 
                 while ( !g_serverShouldStop ) {
+                    fd_set readfds;
+                    FD_ZERO(&readfds);
+                    FD_SET(listen_fd, &readfds);
+
+                    timeval timeout{};
+                    timeout.tv_sec = 1;
+
                     int ret = select(listen_fd + 1, &readfds, nullptr, nullptr, &timeout);
                     if ( ret < 0 ) {
                         perror( "select" );

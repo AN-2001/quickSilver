@@ -18,7 +18,7 @@ namespace Connections {
 
         [[nodiscard]] std::size_t size() const noexcept {
             std::size_t h = head.load( std::memory_order_relaxed );
-            std::size_t t = head.load( std::memory_order_relaxed );
+            std::size_t t = tail.load( std::memory_order_relaxed );
             return ( h - t ) & ( N - 1 );
         }
 
@@ -34,7 +34,7 @@ namespace Connections {
             head.store( newValue, std::memory_order_release );
         }
 
-        [[nodiscard]] Utils::Job &&pop() noexcept {
+        [[nodiscard]] Utils::Job pop() noexcept {
             std::size_t oldValue, newValue, headValue;
             do {
                 oldValue = tail.load( std::memory_order_acquire );
