@@ -87,8 +87,12 @@ namespace JobTools {
             {
                 Utils::JobState ret{};
                 JobAuxState aux{};
-                for ( const auto &event : m_container )
+                for ( const auto &event : m_container ) {
                     processEvent( ret, aux, event );
+                    if ( event.m_type == Json::ParserEventType::SetJobType &&
+                            event.m_ident0 == std::to_underlying( Json::Token::Metrics ) )
+                        return ret;
+                }
                 ret.strings = m_container.releaseStrings();
                 return ret;
             }

@@ -28,7 +28,33 @@ namespace JobTools {
     static constexpr std::size_t NUM_STATES = std::to_underlying( ValidatorState::NumStates );
     static constexpr std::size_t NUM_TRANSITIONS = std::to_underlying( Json::ParserEventType::NumEvents );
     using TransitionTable = std::array< std::array< ValidatorState, NUM_TRANSITIONS >, NUM_STATES >;
-    static consteval TransitionTable buildTransitionTable()
+
+    static consteval TransitionTable buildMetricsTransitionTable()
+    {
+        TransitionTable table{};
+        auto addTransition = [ &table ]( ValidatorState src, Json::ParserEventType event, ValidatorState dst ) 
+        {
+            std::size_t srcIndex = std::to_underlying( src );
+            std::size_t eventIndex = std::to_underlying( event );
+            table[ srcIndex ][ eventIndex ] = dst;
+        };
+
+        for ( auto &state : table )
+            for ( auto &transition : state )
+                transition = ValidatorState::UnexpectedState;
+
+        addTransition( ValidatorState::Init,
+					   Json::ParserEventType::SetJobType,
+					   ValidatorState::SetJobType );
+
+        addTransition( ValidatorState::SetJobType,
+					   Json::ParserEventType::Finish,
+					   ValidatorState::Finish );
+
+        return table;
+    }
+
+    static consteval TransitionTable buildComputeTransitionTable()
     {
         TransitionTable table{};
         auto addTransition = [ &table ]( ValidatorState src, Json::ParserEventType event, ValidatorState dst ) 
@@ -112,7 +138,8 @@ namespace JobTools {
     template <typename T>
     class Validator {
         private:
-            static constexpr TransitionTable s_transitions = buildTransitionTable();
+            static constexpr TransitionTable s_computeTransitions = buildComputeTransitionTable();
+            static constexpr TransitionTable s_metricsTransitions = buildMetricsTransitionTable();
             T &m_container;
 
             struct InternalState {
@@ -227,6 +254,7 @@ namespace JobTools {
             {
                 Validator::InternalState internalState{};
                 ValidatorState currentState = ValidatorState::Init;
+                auto *transitions = &s_computeTransitions;
 
                 internalState.numStrings = m_container.getStringCount();
                 internalState.lastVertex = -1;
@@ -237,8 +265,11 @@ namespace JobTools {
 
                     if ( !validateTransition( internalState, event ) ) 
                         return false;
+                    if ( event.m_type == Json::ParserEventType::SetJobType &&
+                            event.m_ident0 == std::to_underlying( Json::Token::Metrics ) )
+                        transitions = &s_metricsTransitions;
 
-                    currentState = s_transitions[ currentIndex ][ transitionIndex ];
+                    currentState = (*transitions)[ currentIndex ][ transitionIndex ];
                     if ( currentState == ValidatorState::UnexpectedState )
                         return false;
                 }
