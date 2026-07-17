@@ -1,5 +1,5 @@
 {
-    "jobType": "metrics",
+    "jobType": "compute",
     "algorithm": "BFS",
     "graph": {
         "numVertices": 3,

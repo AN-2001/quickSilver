@@ -99,6 +99,21 @@ static const BuilderTestCase BuilderTests[] = {
         }
     },
     {
+        .name = "test_standard_metrics",
+        .input = { 0,
+            Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Metrics ) ),
+            Json::ParserEvent( Json::ParserEventType::Finish ),
+        },
+        .expected = {
+            .type = Utils::JobType::Metrics,
+            .algorithm = Utils::AlgorithmType::BFS,
+            .numInputs = 0,
+            .inputs = {},
+            .graph = {},
+            .strings = {}
+        }
+    },
+    {
         .name = "test_with_edges",
         .input = { 0,
             Json::ParserEvent( Json::ParserEventType::SetJobType, std::to_underlying( Json::Token::Compute ) ),

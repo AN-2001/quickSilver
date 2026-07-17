@@ -11,17 +11,11 @@
 #include "utils/serializer.h"
 #include "jobBuilder/timer.h"
 #include <chrono>
-#include <iostream>
 
 void JobTools::JobPipeline::execute() noexcept
 {
     auto schedTime = std::chrono::steady_clock::now();
     double schedLatency = std::chrono::duration< double >( schedTime - m_job.m_acceptTime ).count();
-
-    if (m_job.m_acceptTime == std::chrono::steady_clock::time_point{}) {
-        std::cerr << "acceptTime not initialized!\n";
-    }
-
     m_eventQueue -> push( { Connections::MetricsEventType::SchedJobLatency, {}, schedLatency }  );
 
     JobTools::Timer jobTimer( m_eventQueue, Connections::MetricsEventType::PostJobLatency );
