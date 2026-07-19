@@ -1,7 +1,7 @@
 
 include ./common.mk
 
-SUBSYSTEMS := jobBuilder jobParser algorithms connections
+SUBSYSTEMS := jobBuilder jobParser algorithms
 SUBSYSTEMS_TESTS := $(foreach s,$(SUBSYSTEMS),$(s)_test)
 LIBS := $(foreach s,$(SUBSYSTEMS),$(s)/lib$(s).a)
 OBJECTS := main.o

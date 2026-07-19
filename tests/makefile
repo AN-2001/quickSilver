@@ -1,7 +1,7 @@
 include ../common.mk
 
 CXXFLAGS += -I..
-SUBSYSTEMS := jobBuilder jobParser algorithms connections
+SUBSYSTEMS := jobBuilder jobParser algorithms
 LIBS := $(foreach s,$(SUBSYSTEMS),../$(s)/lib$(s).a)
 INTEGRATION := quicksilver_system_integration 
 SERVER := quicksilver_as_server

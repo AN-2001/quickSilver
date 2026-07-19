@@ -9,4 +9,5 @@ compile_commands.json
 generated/
 quicksilver
 */*/runTests
-tests/integration
+tests/quicksilver_system_integration
+tests/quicksilver_as_server
