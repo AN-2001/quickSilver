@@ -125,7 +125,6 @@ namespace Json {
         Token m_type{};
         float m_numericValue{};
         std::string_view m_labelValue{};
-        std::string repr{};
 
         TokenWrapper( Token type ) : m_type( type ) {}
         TokenWrapper( float numeric ) : m_type( Token::Number ), m_numericValue( numeric ) {}
@@ -146,21 +145,6 @@ namespace Json {
         [[nodiscard]] constexpr bool operator==( Token t ) const noexcept 
         {
             return m_type == t;
-        }
-
-        [[nodiscard]] constexpr std::optional< std::string_view > toString() noexcept 
-        {
-            if ( !repr.empty() )
-                return repr;
-            auto name = tokenToString( m_type );
-            if ( !name )
-                return std::nullopt;
-            repr = *name;
-            if ( m_type == Token::Number )
-                repr += "(" + std::to_string( m_numericValue ) + ")";
-            if ( m_type == Token::Label )
-                repr += "(" + std::string( m_labelValue ) + ")";
-            return repr;
         }
     };
 
