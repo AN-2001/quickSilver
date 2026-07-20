@@ -11,10 +11,13 @@ ifeq ($(COVERAGE),1)
     CXXFLAGS := $(CXXFLAGS) $(COVERAGE_FLAGS)
 endif
 
-all: $(ARCHIVE) make_test
+all: $(ARCHIVE) make_test make_benchmark
 
 make_test: $(ARCHIVE)
 	+$(MAKE) -C ./tests
+
+make_benchmark: $(ARCHIVE)
+	+$(MAKE) -C ./benchmark
 
 test: $(ARCHIVE)
 	+$(MAKE) -C ./tests test
@@ -30,3 +33,4 @@ $(ARCHIVE): $(OBJECTS)
 clean:
 	@rm -f $(ARCHIVE) $(OBJECTS) *.gcno *.gcda
 	$(MAKE) -C ./tests clean
+	$(MAKE) -C ./benchmark clean

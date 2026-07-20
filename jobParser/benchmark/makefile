@@ -18,7 +18,11 @@ TARGET := runBenchmarks
 all: $(TARGET)
 
 bench: all
-	./$(TARGET)
+	python3 ./gen.py > graph.json
+	sudo perf record -F 99 --call-graph dwarf -- ./runBenchmarks --benchmark_min_time=30s
+	sudo perf script > script.perf
+	stackcollapse-perf.pl script.perf > stack.out
+	flamegraph.pl stack.out > flame.svg
 
 $(TARGET): $(SRCS) $(ARCHIVE)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) $(LDLIBS) -o $@
@@ -26,4 +30,4 @@ $(TARGET): $(SRCS) $(ARCHIVE)
 .PHONY: clean
 
 clean:
-	rm -f $(TARGET) *.gcno *.gcda perf.* *.svg *.out 
+	rm -f $(TARGET) *.gcno *.gcda *.perf *.svg *.out *.json

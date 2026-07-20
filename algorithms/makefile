@@ -12,14 +12,16 @@ ifeq ($(COVERAGE),1)
     LDFLAGS += --coverage
 endif
 
-all: $(ARCHIVE)
+all: $(ARCHIVE) make_test 
 
-test: 
+make_test: $(ARCHIVE)
+	+$(MAKE) -C ./tests
+
+test: $(ARCHIVE)
 	+$(MAKE) -C ./tests test
 
 $(ARCHIVE): $(OBJECTS)
 	ar rcs $(ARCHIVE) $(OBJECTS)
-	+$(MAKE) -C ./tests
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@
