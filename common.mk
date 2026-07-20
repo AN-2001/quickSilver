@@ -1,9 +1,7 @@
 CXX := g++
 MAKE := make
 
-# -fno-omit-frame-pointer 
-
-CXXFLAGS := -O3 \
+CXXFLAGS := -O3 -fno-omit-frame-pointer \
 			-std=c++23 -I. \
             -Wall -Wextra -Wpedantic \
             -Wshadow -Wconversion -Wsign-conversion \

@@ -28,6 +28,23 @@ namespace Connections {
 
     static volatile std::sig_atomic_t g_serverShouldStop = 0;
 
+    inline void pinThreadToCpu(std::size_t threadId)
+    {
+        unsigned int cpuCount = std::thread::hardware_concurrency();
+        if (cpuCount == 0)
+            return;
+
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+
+        CPU_SET(threadId % cpuCount, &cpuset);
+
+        sched_setaffinity(
+                0,                    // current thread
+                sizeof(cpu_set_t),
+                &cpuset
+                );
+    }
 
     inline void handleSignal( int ) {
         printf( "RECEIVED STOP SIGNAL\n" );  
@@ -38,6 +55,8 @@ namespace Connections {
     {
 
         printf( "WORKER %lu STARTED\n", threadId );
+
+        pinThreadToCpu( threadId );
 
         using namespace Utils;
         Utils::Arena arena{ 1_MB };
