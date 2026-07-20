@@ -6,29 +6,23 @@ def random_label(length=8):
     return "".join(random.choices(string.ascii_lowercase, k=length))
 
 def generate_graph():
-    num_vertices = random.randint(100, 1000)
-    num_edges = random.randint(100, 1000)
+    num_vertices = random.randint( 1000, 2000 )
+    num_edges = random.randint( 1000, 2000 )
 
-    edges = set()
+    adjacency = [[] for _ in range(num_vertices)]
 
-    while len(edges) < num_edges:
+    for _ in range(num_edges):
         u = random.randrange(num_vertices)
         v = random.randrange(num_vertices)
 
-        if u == v:
-            continue
-
-        if u > v:
-            u, v = v, u
-
-        edges.add((u, v))
+        adjacency[u].append(v)
 
     return {
         "jobType": "compute",
         "algorithm": random.choice(["BFS", "DFS"]),
         "graph": {
             "numVertices": num_vertices,
-            "edges": [list(e) for e in edges],
+            "edges": adjacency,
             "labels": [
                 random_label()
                 for _ in range(num_vertices)
@@ -38,7 +32,6 @@ def generate_graph():
             random.randrange(num_vertices)
         ]
     }
-
 
 def main():
     graph = generate_graph()

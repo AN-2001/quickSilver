@@ -177,9 +177,9 @@ static const ParserTestCase ParserTests[] = {
                 "graph": {
                     "numVertices": 3,
                     "edges": [
-                        [ 0, 1 ],
-                        [ 1, 2 ],
-                        [ 2, 1 ]
+                        [ 1 ],
+                        [ 2 ],
+                        [ 1 ]
                     ],
                     "labels": [
                         "Los Angeles",
@@ -340,23 +340,6 @@ static const ParserTestCase ParserTests[] = {
         .expectedError = Json::Error::UnexpectedToken
     },
     {
-        .name = "test_edges_bad_size",
-        .json = R"JSON(
-            { 
-                "graph": {
-                    "edges": [
-                        [1, 2, 3]
-                    ]
-                }
-            }
-        )JSON",
-        .expected = {
-        },
-        .labels = {
-        },
-        .expectedError = Json::Error::UnexpectedToken
-    },
-    {
         .name = "test_input_mixed",
         .json = R"JSON(
             { 
@@ -435,14 +418,17 @@ static const ParserTestCase ParserTests[] = {
             { 
                 "graph": {
                     "edges": [
-                        [ 3, 4 ],
-                        [ 1, 2 ],
-                        [ 5, 2 ],
-                        [ 0, 1 ],
-                        [ 2, 3 ],
-                        [ 10, 11 ],
-                        [ 0, 5 ],
-                        [ 4, 4 ]
+                        [ 1, 5 ],
+                        [ 2 ],
+                        [ 3 ],
+                        [ 4 ],
+                        [ 4 ],
+                        [ 2 ],
+                        [],
+                        [],
+                        [],
+                        [],
+                        [ 11 ]
                     ]
                 }
             }

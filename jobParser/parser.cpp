@@ -2,7 +2,6 @@
 #include "jobParser/errors.h"
 #include "jobParser/parserEvents.h"
 #include "jobParser/token.h"
-#include <algorithm>
 #include <cstdint>
 #include <utility>
 
@@ -131,6 +130,7 @@ bool Json::Parser::parseGraphNumVertices() noexcept
 bool Json::Parser::parseGraphEdges() noexcept 
 {
     uint16_t edgeCount = 0;
+    uint16_t currentSrc = 0;
 
     if ( !expect( Json::Token::Edges ) ) {
         m_error = Error::UnexpectedToken;
@@ -149,59 +149,62 @@ bool Json::Parser::parseGraphEdges() noexcept
 
     auto nextTok = m_lexer.peek();
     if ( nextTok.m_type == Json::Token::RightBracket ) {
+        m_lexer.get();
         addEvent( Json::ParserEvent( Json::ParserEventType::SetEdgeCount, 0 ) );
-        if ( !expect( Json::Token::RightBracket ) ) {
-            m_error = Error::UnexpectedToken;
-            return false;
-        }
-
         return true;
     }
 
     while ( true ) {
+        bool skip = false;
 
         if ( !expect( Json::Token::LeftBracket ) ) {
             m_error = Error::UnexpectedToken;
             return false;
         }
 
-        nextTok = m_lexer.get();
-        if ( nextTok.m_type != Json::Token::Number ) {
-            m_error = Error::UnexpectedToken;
-            return false;
+        nextTok = m_lexer.peek();
+        if ( nextTok.m_type == Json::Token::RightBracket ) {
+            m_lexer.get();
+            skip = true;
         }
 
-        uint16_t src = static_cast<uint16_t>( nextTok.getNumericValue() );
+        while ( !skip ) {
+            nextTok = m_lexer.get();
+            if ( nextTok.m_type != Json::Token::Number ) {
+                m_error = Error::UnexpectedToken;
+                return false;
+            }
+
+            uint16_t dst = static_cast<uint16_t>( nextTok.getNumericValue() );
+            addEvent( Json::ParserEvent( Json::ParserEventType::AddEdge, currentSrc, dst ) );
+            edgeCount++;
+
+            nextTok = m_lexer.peek();
+            if ( nextTok.m_type == Json::Token::RightBracket ) {
+                m_lexer.get();
+                break;
+            }
+
+            if ( !expect( Json::Token::Comma ) ) {
+                m_error = Error::UnexpectedToken;
+                return false;
+            }
+        }
+
+
+        nextTok = m_lexer.peek();
+        if ( nextTok.m_type == Json::Token::RightBracket ) {
+            m_lexer.get();
+            break;
+        }
+
+        currentSrc++;
+
         if ( !expect( Json::Token::Comma ) ) {
             m_error = Error::UnexpectedToken;
             return false;
         }
 
-        nextTok = m_lexer.get();
-        if ( nextTok.m_type != Json::Token::Number ) {
-            m_error = Error::UnexpectedToken;
-            return false;
-        }
-
-        uint16_t dst = static_cast<uint16_t>( nextTok.getNumericValue() );
-        addEvent( Json::ParserEvent( Json::ParserEventType::AddEdge, src, dst ) );
-
-        edgeCount++;
-
-        if ( !expect( Json::Token::RightBracket ) ) {
-            m_error = Error::UnexpectedToken;
-            return false;
-        }
-
-        nextTok = m_lexer.peek();
-        if ( nextTok.m_type != Token::Comma )
-            break;
-        m_lexer.get();
-    }
-
-    if ( !expect( Json::Token::RightBracket ) ) {
-        m_error = Error::UnexpectedToken;
-        return false;
     }
 
     addEvent( Json::ParserEvent( Json::ParserEventType::SetEdgeCount, edgeCount ) ); 
@@ -227,11 +230,8 @@ bool Json::Parser::parseGraphLabels() noexcept
 
     auto nextTok = m_lexer.peek();
     if ( nextTok.m_type == Json::Token::RightBracket ) {
+        m_lexer.get();
         addEvent( Json::ParserEvent( Json::ParserEventType::SetLabelCount, 0 ) ); 
-        if ( !expect( Json::Token::RightBracket ) ) {
-            m_error = Error::UnexpectedToken;
-            return false;
-        }
         return true;
     }
 
@@ -249,14 +249,15 @@ bool Json::Parser::parseGraphLabels() noexcept
         labelCount++;
         nextTok = m_lexer.peek();
 
-        if ( nextTok.m_type != Token::Comma )
+        if ( nextTok.m_type == Token::RightBracket ) {
+            m_lexer.get();
             break;
-        m_lexer.get();
-    }
+        }
 
-    if ( !expect( Json::Token::RightBracket ) ) {
-        m_error = Error::UnexpectedToken;
-        return false;
+        if ( !expect( Token::Comma ) ) {
+            m_error = Error::UnexpectedToken;
+            return false;
+        }
     }
 
     addEvent( ParserEvent( ParserEventType::SetLabelCount, labelCount ) );
@@ -323,15 +324,17 @@ bool Json::Parser::parseGraph() noexcept
         }
 
         nextTok = m_lexer.peek();
-        if ( nextTok.m_type != Token::Comma )
+        if ( nextTok.m_type == Token::RightBrace ) {
+            m_lexer.get();
             break;
-        m_lexer.get();
+        }
+
+        if ( !expect( Json::Token::Comma ) ) {
+            m_error = Error::UnexpectedToken;
+            return false;
+        }
     }
 
-    if ( !expect( Json::Token::RightBrace ) ) {
-        m_error = Error::UnexpectedToken;
-        return false;
-    }
 
     return true;
 }
@@ -356,11 +359,8 @@ bool Json::Parser::parseInput() noexcept
 
     auto nextTok = m_lexer.peek();
     if ( nextTok.m_type == Json::Token::RightBracket ) {
+        m_lexer.get();
         addEvent( Json::ParserEvent( Json::ParserEventType::SetInputCount, 0 ) ); 
-        if ( !expect( Json::Token::RightBracket ) ) {
-            m_error = Error::UnexpectedToken;
-            return false;
-        }
         return true;
     }
 
@@ -377,15 +377,17 @@ bool Json::Parser::parseInput() noexcept
 
 
         nextTok = m_lexer.peek();
-        if ( nextTok.m_type != Token::Comma )
+        if ( nextTok.m_type == Token::RightBracket ) {
+            m_lexer.get();
             break;
-        m_lexer.get();
+        }
+
+        if ( !expect( Json::Token::Comma ) ) {
+            m_error = Error::UnexpectedToken;
+            return false;
+        }
     }
 
-    if ( !expect( Json::Token::RightBracket ) ) {
-        m_error = Error::UnexpectedToken;
-        return false;;
-    }
     addEvent( Json::ParserEvent( ParserEventType::SetInputCount, inputCount ) ); 
     return true;
 }
@@ -442,16 +444,18 @@ bool Json::Parser::parseJob() noexcept
         }
 
         nextTok = m_lexer.peek();
-        if ( nextTok.m_type != Token::Comma )
+        if ( nextTok.m_type == Token::RightBrace ) {
+            m_lexer.get();
             break;
+        }
 
-        m_lexer.get();
+
+        if ( !expect( Json::Token::Comma ) ) {
+            m_error = Error::UnexpectedToken;
+            return false;
+        }
     }
 
-    if ( !expect( Json::Token::RightBrace ) ) {
-        m_error = Error::UnexpectedToken;
-        return false;
-    }
     return true;
 }
 
@@ -463,13 +467,6 @@ bool Json::Parser::parse() noexcept
         m_error = Error::UnexpectedToken;
         return false;
     }
-
-    uint16_t addEdgeIndex = std::to_underlying( ParserEventType::AddEdge );
-    std::sort( m_eventQueue[ addEdgeIndex ].begin(),
-               m_eventQueue[ addEdgeIndex ].begin() + m_eventCounts[ addEdgeIndex ],
-               []( const auto &e0, const auto &e1 ) -> bool {
-                    return e0.m_ident0 < e1.m_ident0;
-               });
 
     addEvent( Json::ParserEvent( ParserEventType::Finish ) ); 
 

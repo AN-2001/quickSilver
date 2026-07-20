@@ -286,8 +286,7 @@ static const LexerTestCase LexerTests[] = {
             "graph": {
                 "numVertices": 3,
                 "edges": [
-                    [0, 1],
-                    [0, 2]
+                    [1, 2]
                 ],
                 "labels": [
                     "Chicago",
@@ -324,13 +323,7 @@ static const LexerTestCase LexerTests[] = {
             Json::TokenWrapper(Json::Token::Colon),
             Json::TokenWrapper(Json::Token::LeftBracket),
             Json::TokenWrapper(Json::Token::LeftBracket),
-            Json::TokenWrapper(0.0),
-            Json::TokenWrapper(Json::Token::Comma),
             Json::TokenWrapper(1.0),
-            Json::TokenWrapper(Json::Token::RightBracket),
-            Json::TokenWrapper(Json::Token::Comma),
-            Json::TokenWrapper(Json::Token::LeftBracket),
-            Json::TokenWrapper(0.0),
             Json::TokenWrapper(Json::Token::Comma),
             Json::TokenWrapper(2.0),
             Json::TokenWrapper(Json::Token::RightBracket),
