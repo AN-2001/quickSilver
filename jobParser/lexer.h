@@ -11,7 +11,7 @@
 
 namespace Json {
     class Lexer {
-        static constexpr std::size_t g_buffSize = 1024 * 32;
+        static constexpr std::size_t g_buffSize = 1024 * 16;
 
         Utils::Job &m_job;
 
@@ -20,7 +20,7 @@ namespace Json {
 
         bool m_eof{};
 
-        ssize_t m_readBuffSize{};
+        std::size_t m_readBuffSize{};
 
         std::size_t m_readBuffCursor{};
 
@@ -29,56 +29,51 @@ namespace Json {
         [[nodiscard]] std::expected< Json::TokenWrapper, Json::Error > computeNextToken() noexcept;
 
         class SafeReader {
-            Utils::Job &m_job;
-            std::array< char, g_buffSize > &m_buff;
-            ssize_t &m_size;
-            std::size_t &m_cursor;
-            bool &m_eof;
+            Lexer &m_lexer;
 
             [[nodiscard]] inline Json::Error populate() noexcept 
             {
-                m_cursor = 0;
-                if ( m_eof )
+                m_lexer.m_readBuffCursor = 0;
+                if ( m_lexer.m_eof )
                     return Json::Error::UnexpectedEof;
 
-                m_size = m_job.read( m_buff.data(), g_buffSize );
-                if ( m_size < 0 )
+                ssize_t size = m_lexer.m_job.read( m_lexer.m_readBuff.data(), g_buffSize );
+                if ( size < 0 )
                     return Json::Error::ReadError;
-                if ( !m_size ) {
-                    m_eof = true;
+
+                m_lexer.m_readBuffSize = static_cast< std::size_t >( size );
+
+                if ( !size ) {
+                    m_lexer.m_eof = true;
                     return Json::Error::UnexpectedEof;
                 }
+
                 return Json::Error::NoError;
             }
                 
 
             public:
-            SafeReader( Lexer &lexer ) noexcept :
-                m_job( lexer.m_job ),
-                m_buff( lexer.m_readBuff ),
-                m_size( lexer.m_readBuffSize ),
-                m_cursor( lexer.m_readBuffCursor ),
-                m_eof( lexer.m_eof )
+            inline SafeReader( Lexer &lexer ) noexcept : m_lexer( lexer )
             {}
 
             [[nodiscard]] inline std::expected<char, Json::Error> peek() noexcept 
             {
-                if ( m_cursor == std::size_t( m_size ) ) {
+                if ( m_lexer.m_readBuffCursor == m_lexer.m_readBuffSize ) {
                     auto res = populate();
                     if ( res != Json::Error::NoError )
                         return std::unexpected( res );
                 }
-                return m_buff[ m_cursor ];
+                return m_lexer.m_readBuff[ m_lexer.m_readBuffCursor ];
             }
 
             [[nodiscard]] inline std::expected<char, Json::Error> consume() noexcept 
             {
-                if ( m_cursor == std::size_t( m_size ) ) {
+                if ( m_lexer.m_readBuffCursor == m_lexer.m_readBuffSize ) {
                     auto res = populate();
                     if ( res != Json::Error::NoError )
                         return std::unexpected( res );
                 }
-                return m_buff[ m_cursor++ ];
+                return m_lexer.m_readBuff[ m_lexer.m_readBuffCursor++ ];
             }
 
             SafeReader( const SafeReader &other ) noexcept = delete;
@@ -93,18 +88,18 @@ namespace Json {
 
             public:
 
-            ScratchPopulator( Lexer &lexer ) noexcept : m_buff( lexer.m_scratch ), m_size( 0 ) {}
+            inline ScratchPopulator( Lexer &lexer ) noexcept : m_buff( lexer.m_scratch ), m_size( 0 ) {}
 
-            void add( const char c ) noexcept 
+            inline void add( const char c ) noexcept 
             {
                 m_buff[ m_size++ ] = c;
             }
 
-            [[nodiscard]] std::size_t getSize() const noexcept 
+            [[nodiscard]] inline std::size_t getSize() const noexcept 
             {
                 return m_size;
             }
-            [[nodiscard]] std::string_view toView() const noexcept 
+            [[nodiscard]] inline std::string_view toView() const noexcept 
             {
                 return { m_buff.data(), m_size };
             }

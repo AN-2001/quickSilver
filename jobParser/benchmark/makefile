@@ -6,7 +6,7 @@ BENCHMARK_INCLUDE := -isystem ../../deps/benchmark/include
 include ../../common.mk
 
 CXXFLAGS += -I../.. $(BENCHMARK_INCLUDE)
-CXXFLAGS += -O2 -g
+CXXFLAGS += -O3 -g
 CXXFLAGS += -fno-omit-frame-pointer
 
 LDFLAGS := $(BENCHMARK_LIBS)
@@ -26,4 +26,4 @@ $(TARGET): $(SRCS) $(ARCHIVE)
 .PHONY: clean
 
 clean:
-	rm -f $(TARGET) *.gcno *.gcda
+	rm -f $(TARGET) *.gcno *.gcda perf.* *.svg *.out 

@@ -122,23 +122,22 @@ namespace Json {
     }
 
     struct TokenWrapper {
-        Token m_type{};
-        float m_numericValue{};
-        std::string_view m_labelValue{};
+        Token m_type;
+        float m_numericValue;
+        std::string_view m_labelValue;
 
-        TokenWrapper( Token type ) : m_type( type ) {}
-        TokenWrapper( float numeric ) : m_type( Token::Number ), m_numericValue( numeric ) {}
-        TokenWrapper( std::string_view label ) : m_type( Token::Label ), m_labelValue( label ) {}
+
+        constexpr TokenWrapper( Token type ) noexcept : m_type( type ) {}
+        constexpr TokenWrapper( float numeric ) noexcept : m_type( Token::Number ), m_numericValue( numeric ) {}
+        constexpr TokenWrapper( std::string_view label ) noexcept : m_type( Token::Label ), m_labelValue( label ) {}
 
         [[nodiscard]] constexpr std::string_view getLabelValue() const noexcept 
         {
-            /* No assert on this! watch out!!! */
             return m_labelValue;
         }
 
         [[nodiscard]] constexpr float getNumericValue() const noexcept 
         {
-            /* No assert on this! watch out!!! */
             return m_numericValue;
         }
 
