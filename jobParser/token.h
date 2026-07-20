@@ -1,8 +1,6 @@
 #include <cstdint>
 #include <string_view>
-#include <utility>
 #include <utils/fastMap.h>
-#include <optional>
 
 #pragma once
 
@@ -33,6 +31,7 @@ namespace Json {
         True,
         False,
         Eof,
+        Invalid,
         NumTokens,
     };
 
@@ -69,66 +68,31 @@ namespace Json {
         return map;
     }
 
-    [[nodiscard]] constexpr auto buildTokenMapping() noexcept
-    {
-        using namespace std::string_view_literals;
-
-        Utils::FastMap<Token, std::string_view, std::to_underlying( Token::NumTokens ) > map;
-
-        map.add( Token::JobType, "job type"sv );
-        map.add( Token::Metrics, "metrics"sv );
-        map.add( Token::Compute, "compute"sv );
-        map.add( Token::Algorithm, "algorithm"sv );
-        map.add( Token::NumVertices, "numVertices"sv );
-        map.add( Token::Edges, "edges"sv );
-        map.add( Token::Graph, "graph"sv );
-        map.add( Token::Input, "input"sv );
-        map.add( Token::Labels, "labels"sv );
-        map.add( Token::Dfs, "dfs"sv );
-        map.add( Token::Bfs, "bfs"sv );
-        map.add( Token::Number, "number"sv );
-        map.add( Token::Label, "label"sv );
-        map.add( Token::LeftBracket, "left bracket"sv );
-        map.add( Token::RightBracket, "right bracket"sv );
-        map.add( Token::LeftBrace, "left brace"sv );
-        map.add( Token::RightBrace, "right brace"sv );
-        map.add( Token::Comma, "comma"sv );
-        map.add( Token::Colon, "colon"sv );
-        map.add( Token::Null, "null"sv );
-        map.add( Token::True, "true"sv );
-        map.add( Token::False, "false"sv );
-        map.add( Token::Eof, "EOF"sv );
-        return map;
-    }
-
-    [[nodiscard]] constexpr std::optional<std::string_view> tokenToString( Token token ) noexcept {
-        static constexpr auto mapping = buildTokenMapping();
-        if ( !mapping.exists( token ) ) return std::nullopt;
-        return mapping.get( token );
-    }
-
-    [[nodiscard]] constexpr std::optional<Token> graphKeywordToToken( std::string_view str ) noexcept
+    [[nodiscard]] constexpr Token graphKeywordToToken( std::string_view str ) noexcept
     {
         static constexpr auto mapping = buildGraphKeywordsMapping();
-        if ( !mapping.exists( str ) ) return std::nullopt;
-        return mapping.get( str );
+        Token tok;
+        if ( !mapping.find( str, tok ) ) return Token::Invalid;
+        return tok;
     }
 
-    [[nodiscard]] constexpr std::optional<Token> jsonKeywordToToken( std::string_view str ) noexcept
+    [[nodiscard]] constexpr Token jsonKeywordToToken( std::string_view str ) noexcept
     {
         static constexpr auto mapping = buildJsonKeywordsMapping();
-        if ( !mapping.exists( str ) ) return std::nullopt;
-        return mapping.get( str );
+        Token tok;
+        if ( !mapping.find( str, tok ) ) return Token::Invalid;
+        return tok;
     }
 
     struct TokenWrapper {
         Token m_type;
-        float m_numericValue;
+        double m_numericValue;
         std::string_view m_labelValue;
 
+        constexpr TokenWrapper() noexcept {}
 
         constexpr TokenWrapper( Token type ) noexcept : m_type( type ) {}
-        constexpr TokenWrapper( float numeric ) noexcept : m_type( Token::Number ), m_numericValue( numeric ) {}
+        constexpr TokenWrapper( double numeric ) noexcept : m_type( Token::Number ), m_numericValue( numeric ) {}
         constexpr TokenWrapper( std::string_view label ) noexcept : m_type( Token::Label ), m_labelValue( label ) {}
 
         [[nodiscard]] constexpr std::string_view getLabelValue() const noexcept 
@@ -136,15 +100,11 @@ namespace Json {
             return m_labelValue;
         }
 
-        [[nodiscard]] constexpr float getNumericValue() const noexcept 
+        [[nodiscard]] constexpr double getNumericValue() const noexcept 
         {
             return m_numericValue;
         }
 
-        [[nodiscard]] constexpr bool operator==( Token t ) const noexcept 
-        {
-            return m_type == t;
-        }
     };
 
 };

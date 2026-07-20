@@ -35,9 +35,12 @@ namespace Json {
 
     [[nodiscard]] constexpr std::string_view errorToString( Json::Error err ) noexcept
     {
+        using namespace std::string_view_literals;
+
         static constexpr auto mapping = buildErrorMapping();
-        if ( !mapping.exists( err ) ) return "unknown";
-        return mapping.get( err );
+        std::string_view errStr;
+        if ( !mapping.find( err, errStr ) ) return "unknown"sv;
+        return errStr;
     }
 
 };

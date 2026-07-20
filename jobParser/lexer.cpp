@@ -1,165 +1,133 @@
 #include "lexer.h"
 #include "jobParser/errors.h"
 #include "jobParser/token.h"
-#include <cctype>
 #include <charconv>
-#include <expected>
 #include <system_error>
 
 namespace {
 
-    inline std::expected< float, std::errc > parseNumber( std::string_view sv ) 
+    inline bool parseNumber( std::string_view sv, double &num ) 
     {
-        float num;
         const char *begin = sv.data();
         const char *end = sv.data() + sv.length();
 
         auto [ ptr, ec ] = std::from_chars( begin, end, num );
 
-        if ( ec == std::errc{} ) {
-            if ( ptr != end )
-                return std::unexpected< std::errc > ( std::errc::invalid_argument );
-            return num;
-        }
-        return std::unexpected< std::errc >( ec );
+        if ( ec == std::errc{} )
+            return ptr == end;
+        return false;
     }
 
     inline bool isSpace(char c) noexcept
     {
-        return c == ' ' || c == '\n' || c == '\r' || c == '\t';
+        switch ( c ) {
+            case ' ':
+            case '\n':
+            case '\r':
+            case '\t':
+                return true;
+            default:
+                return false;
+        }
     }
 
     inline bool isDigit(char c) noexcept
     {
-        return c >= '0' && c <= '9';
+        return static_cast< unsigned char > ( c - '0' ) < 10;
+    }
+
+    static constexpr std::array< Json::Token, 256 > buildCharTable() {
+        std::array< Json::Token, 256 > table{};
+        table.fill( Json::Token::Invalid );
+        table[ ':' ] = Json::Token::Colon;
+        table[ ',' ] = Json::Token::Comma;
+        table[ '[' ] = Json::Token::LeftBracket;
+        table[ '{' ] = Json::Token::LeftBrace;
+        table[ ']' ] = Json::Token::RightBracket;
+        table[ '}' ] = Json::Token::RightBrace;
+        table[ '\0' ] = Json::Token::Eof;
+        return table;
     }
 
 };
 
-std::expected< Json::TokenWrapper, Json::Error > Json::Lexer::computeNextToken() noexcept
+Json::TokenWrapper Json::Lexer::computeNextToken() noexcept
 {
-    auto reader = Json::Lexer::SafeReader( *this );
-
-    auto c = reader.consume();
-    if ( !c ) {
-        if ( c.error() == Json::Error::UnexpectedEof )
-            return Token::Eof;
-        return std::unexpected( c.error() );
-    }
-    while ( isSpace( *c ) ) {
-        c = reader.consume();
-        if ( !c ) {
-            if ( c.error() == Json::Error::UnexpectedEof )
-                return Token::Eof;
-            return std::unexpected( c.error() );
-        }
-    }
+    static constexpr auto charTable = buildCharTable();
+    char c;
+    while ( isSpace( c = peekChar() ) )
+        consumeChar();
 
     if ( c == '"' ) {
+        consumeChar();
+
         auto populator = Json::Lexer::ScratchPopulator( *this );
-        c = reader.consume();
-        if ( !c )
-            return std::unexpected( c.error() );
 
-        while ( c != '"' ) {
-            populator.add( *c );
-            c = reader.consume();
-            if ( !c )
-                return std::unexpected( c.error() );
-        }
+        while ( peekChar() != '"' )
+            consumeChar( &populator );
+        /* Consume last " */
+        consumeChar( &populator );
 
-        auto view = populator.toView();
-
+        /* Ignore the last "! */
+        auto view = populator.toView( true );
         auto tok = graphKeywordToToken( view );
-        if ( tok )
-            return *tok;
+        if ( tok != Token::Invalid )
+            return tok;
+
         return view;
     }
 
     if ( c == 'n' || c == 't' || c == 'f' ) {
         auto populator = Json::Lexer::ScratchPopulator( *this );
-        populator.add( *c );
+        consumeChar( &populator );
 
-        auto peek = reader.peek();
-
-        if ( !peek )
-            return std::unexpected( peek.error() );
-
-        while ( !isSpace(*peek) ) {
-            if ( *peek == '[' || *peek == ']' ||
-                 *peek == '{' || *peek == '}' ||
-                 *peek == ',' || *peek == ':' )
+        char peek = peekChar();
+        while ( !isSpace(peek) ) {
+            if ( peek == '[' || peek == ']' ||
+                 peek == '{' || peek == '}' ||
+                 peek == ',' || peek == ':' ||
+                 peek == '\0' )
                 break;
 
-            populator.add( *peek );
-
-            c = reader.consume();
-            if ( !c )
-                return std::unexpected( c.error() );
-
-            peek = reader.peek();
-            if ( !peek ) {
-                if ( peek.error() == Json::Error::UnexpectedEof ) 
-                    break;
-                return std::unexpected( peek.error() );
-            }
+            c = consumeChar( &populator );
+            peek = peekChar();
         }
 
         auto tok = jsonKeywordToToken( populator.toView() );
-        if ( tok )
-            return *tok;
-        return std::unexpected( Json::Error::UnknownToken );
+        if ( tok == Token::Invalid )
+            m_error = Error::UnknownToken;
+        return tok;
     }
 
-    if ( isDigit( *c ) || c == '-' ) {
+    if ( isDigit( c ) || c == '-' ) {
         auto populator = Json::Lexer::ScratchPopulator( *this );
-        populator.add( *c );
-        auto peek = reader.peek();
+        consumeChar( &populator );
 
-        if ( !peek )
-            return std::unexpected( peek.error() );
+        auto peek = peekChar();
 
-        while ( !isSpace(*peek) ) {
-            if ( *peek == '[' || *peek == ']' ||
-                 *peek == '{' || *peek == '}' ||
-                 *peek == ',' || *peek == ':' )
+        while ( !isSpace(peek) ) {
+            if ( peek == '[' || peek == ']' ||
+                 peek == '{' || peek == '}' ||
+                 peek == ',' || peek == ':' ||
+                 peek == '\0')
                 break;
 
-            populator.add( *peek );
-
-            c = reader.consume();
-            if ( !c )
-                return std::unexpected( c.error() );
-
-            peek = reader.peek();
-            if ( !peek ) {
-                if ( peek.error() == Json::Error::UnexpectedEof ) 
-                    break;
-                return std::unexpected( peek.error() );
-            }
+            c = consumeChar( &populator );
+            peek = peekChar();
         }
 
-        auto num = parseNumber( populator.toView() );
-        if ( !num )
-            return std::unexpected( Json::Error::InvalidNumber );
+        double num;
+        if ( !parseNumber( populator.toView(), num ) ) {
+            m_error = Error::InvalidNumber;
+            return Token::Invalid;
+        }
 
-        return *num;
+        return num;
     }
 
-    switch ( *c ) {
-        case ':':
-            return Json::Token::Colon;
-        case ',':
-            return Json::Token::Comma;
-        case '[':
-            return Json::Token::LeftBracket;
-        case '{':
-            return Json::Token::LeftBrace;
-        case ']':
-            return Json::Token::RightBracket;
-        case '}':
-            return Json::Token::RightBrace;
-        default:
-            return std::unexpected( Json::Error::UnknownToken );
-    }
+    auto t = charTable[ std::size_t( c ) ];
+    consumeChar();
+    if ( t == Token::Invalid )
+        m_error = Error::UnknownToken;
+    return t;
 }

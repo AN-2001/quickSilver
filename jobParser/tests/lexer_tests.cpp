@@ -38,7 +38,6 @@ TEST_P(LexerTest, ProducesExpectedTokens) {
         FAIL() << "Could not open /dev/null";
 
     Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, Utils::BorrowedFd{ devNull } );
-    Json::Lexer lexer( mockJob );
 
     ssize_t written;
 
@@ -48,23 +47,25 @@ TEST_P(LexerTest, ProducesExpectedTokens) {
         FAIL() << "Could not write entire json to pipe";
     ::close( mockFds[ 1 ] );
 
+    Json::Lexer lexer( mockJob );
+
     int index = 0;
     for ( const auto &expToken : testParams.expected ) {
         auto tok = lexer.get();
-        if ( !tok ) {
-            if ( tok.error() != testParams.expectedError )
-                FAIL() << Json::errorToString( tok.error() ) << " :: unexpected Lexing error at " << index;
+        if ( tok.m_type == Json::Token::Invalid ) {
+            if ( lexer.error() != testParams.expectedError )
+                FAIL() << Json::errorToString( lexer.error() ) << " :: unexpected Lexing error at " << index;
             else
                 break;
         }
 
-        ASSERT_EQ( tok -> m_type, expToken.m_type ) << "Token mismatch at " << index;
-        switch ( tok -> m_type ) {
+        ASSERT_EQ( tok.m_type, expToken.m_type ) << "Token mismatch at " << index;
+        switch ( tok.m_type ) {
             case Json::Token::Number:
-                ASSERT_NEAR( tok -> getNumericValue(), expToken.getNumericValue(), EPS ) << "Float value mismatch at " << index;
+                ASSERT_NEAR( tok.getNumericValue(), expToken.getNumericValue(), EPS ) << "Float value mismatch at " << index;
                 break;
             case Json::Token::Label:
-                ASSERT_EQ( tok -> getLabelValue(), expToken.getLabelValue() ) << "Label value mismatch at " << index;
+                ASSERT_EQ( tok.getLabelValue(), expToken.getLabelValue() ) << "Label value mismatch at " << index;
                 break;
 
             case Json::Token::JobType:
@@ -89,6 +90,7 @@ TEST_P(LexerTest, ProducesExpectedTokens) {
             case Json::Token::False:
             case Json::Token::Eof:
                 break;
+            case Json::Token::Invalid:
             case Json::Token::NumTokens:
             default:
                 FAIL() << "Unrecognized/unacceptable token detected";
@@ -98,9 +100,11 @@ TEST_P(LexerTest, ProducesExpectedTokens) {
     }
 
     auto tok = lexer.get();
-    if ( tok ) {
-        ASSERT_EQ( tok -> m_type, Json::Token::Eof );
-    }
+    if ( testParams.expectedError != Json::Error::NoError ) {
+        ASSERT_EQ( tok.m_type, Json::Token::Invalid );
+        ASSERT_EQ( lexer.error(), testParams.expectedError );
+    } else 
+        ASSERT_EQ( tok.m_type, Json::Token::Eof );
 
     
     ::close(mockFds[0]);
@@ -160,7 +164,7 @@ static const LexerTestCase LexerTests[] = {
         .name = "test_negative_zero",
         .json = "-0"sv,
         .expected = {
-            Json::TokenWrapper(0.f),
+            Json::TokenWrapper(0.0),
             Json::TokenWrapper(Json::Token::Eof),
         },
         .expectedError = Json::Error::NoError
@@ -205,21 +209,21 @@ static const LexerTestCase LexerTests[] = {
         .json = "1true"sv,
         .expected = {
         },
-        .expectedError = Json::Error::UnknownToken
+        .expectedError = Json::Error::InvalidNumber
     },
     {
         .name = "test_bad_number_false",
         .json = "1false"sv,
         .expected = {
         },
-        .expectedError = Json::Error::UnknownToken
+        .expectedError = Json::Error::InvalidNumber
     },
     {
         .name = "test_bad_number_null",
         .json = "1null"sv,
         .expected = {
         },
-        .expectedError = Json::Error::UnknownToken
+        .expectedError = Json::Error::InvalidNumber
     },
     {
         .name = "test_keyword_sep",
@@ -238,7 +242,7 @@ static const LexerTestCase LexerTests[] = {
         .name = "test_all_tokens",
         .json = R"JSON( 
         ,{}[]:"graph""algorithm""input""numVertices""edges"true false null
-        0.1 1.5 1e2 10 -0.1 "Chicago" "labels" "BFS""DFS" "jobType" "metrics" "compute"
+        0.1 1.5 1e2 10 -0.1 "Chicago" "test" "labels" "BFS""DFS" "jobType" "metrics" "compute"
         )JSON"sv,
         .expected = {
             Json::TokenWrapper(Json::Token::Comma),
@@ -255,12 +259,13 @@ static const LexerTestCase LexerTests[] = {
             Json::TokenWrapper(Json::Token::True),
             Json::TokenWrapper(Json::Token::False),
             Json::TokenWrapper(Json::Token::Null),
-            Json::TokenWrapper(0.1f),
-            Json::TokenWrapper(1.5f),
-            Json::TokenWrapper(1e2f),
-            Json::TokenWrapper(10.0f),
-            Json::TokenWrapper(-0.1f),
+            Json::TokenWrapper(0.1),
+            Json::TokenWrapper(1.5),
+            Json::TokenWrapper(1e2),
+            Json::TokenWrapper(10.0),
+            Json::TokenWrapper(-0.1),
             Json::TokenWrapper("Chicago"sv),
+            Json::TokenWrapper("test"sv),
             Json::TokenWrapper(Json::Token::Labels),
             Json::TokenWrapper(Json::Token::Bfs),
             Json::TokenWrapper(Json::Token::Dfs),
@@ -305,7 +310,7 @@ static const LexerTestCase LexerTests[] = {
             Json::TokenWrapper(Json::Token::Input),
             Json::TokenWrapper(Json::Token::Colon),
             Json::TokenWrapper(Json::Token::LeftBracket),
-            Json::TokenWrapper(0.f),
+            Json::TokenWrapper(0.0),
             Json::TokenWrapper(Json::Token::RightBracket),
             Json::TokenWrapper(Json::Token::Comma),
             Json::TokenWrapper(Json::Token::Graph),
@@ -313,21 +318,21 @@ static const LexerTestCase LexerTests[] = {
             Json::TokenWrapper(Json::Token::LeftBrace),
             Json::TokenWrapper(Json::Token::NumVertices),
             Json::TokenWrapper(Json::Token::Colon),
-            Json::TokenWrapper(3.f),
+            Json::TokenWrapper(3.0),
             Json::TokenWrapper(Json::Token::Comma),
             Json::TokenWrapper(Json::Token::Edges),
             Json::TokenWrapper(Json::Token::Colon),
             Json::TokenWrapper(Json::Token::LeftBracket),
             Json::TokenWrapper(Json::Token::LeftBracket),
-            Json::TokenWrapper(0.f),
+            Json::TokenWrapper(0.0),
             Json::TokenWrapper(Json::Token::Comma),
-            Json::TokenWrapper(1.f),
+            Json::TokenWrapper(1.0),
             Json::TokenWrapper(Json::Token::RightBracket),
             Json::TokenWrapper(Json::Token::Comma),
             Json::TokenWrapper(Json::Token::LeftBracket),
-            Json::TokenWrapper(0.f),
+            Json::TokenWrapper(0.0),
             Json::TokenWrapper(Json::Token::Comma),
-            Json::TokenWrapper(2.f),
+            Json::TokenWrapper(2.0),
             Json::TokenWrapper(Json::Token::RightBracket),
             Json::TokenWrapper(Json::Token::RightBracket),
             Json::TokenWrapper(Json::Token::Comma),

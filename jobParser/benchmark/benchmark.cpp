@@ -10,7 +10,8 @@
 
 static void BM_ParseJson(benchmark::State& state) {
     using namespace Utils;
-    Utils::Arena arena{ 1_MB };
+    Utils::Arena arena{ 64_GB };
+
     for (auto _ : state) {
 
         state.PauseTiming();
@@ -22,6 +23,7 @@ static void BM_ParseJson(benchmark::State& state) {
         Json::Lexer lexer{ job };
         Json::Parser parser{ lexer, alloc };
         auto doc = parser.parse();
+
         // Prevent the compiler from optimizing the result away.
         benchmark::DoNotOptimize(doc);
     }

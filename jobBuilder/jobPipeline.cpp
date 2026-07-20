@@ -29,11 +29,10 @@ void JobTools::JobPipeline::execute() noexcept
 
     {
         JobTools::Timer parseTimer( m_eventQueue, Connections::MetricsEventType::PostJobParseLatency );
-        auto err = parser.parse();
-        if ( err != Json::Error::NoError ) {
+        if ( !parser.parse() ) {
             Utils::Serializer serializer( m_job );
             serializer << R"JSON({"status":"syntax error","error":")JSON";
-            serializer << Json::errorToString( err );
+            serializer << Json::errorToString( parser.error() );
             serializer << R"JSON("})JSON";
             return;
         }

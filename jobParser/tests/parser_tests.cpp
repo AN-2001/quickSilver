@@ -43,8 +43,6 @@ TEST_P(ParserTest, ProducesExpectedEvents) {
     Utils::Arena arena( 1024 );
     Utils::Allocator allocator( arena );
     Utils::Job mockJob( Utils::BorrowedFd{ mockFds[ 0 ] }, Utils::BorrowedFd{ devNull } );
-    Json::Lexer lexer( mockJob );
-    Json::Parser parser( lexer, allocator );
 
     ssize_t written;
 
@@ -54,17 +52,24 @@ TEST_P(ParserTest, ProducesExpectedEvents) {
         FAIL() << "Could not write entire json to pipe";
     ::close( mockFds[ 1 ] );
 
-    Json::Error err = parser.parse();
+    Json::Lexer lexer( mockJob );
+    Json::Parser parser( lexer, allocator );
+
+    bool parsed = parser.parse();
 
     auto strings = parser.releaseStrings();
 
-    ASSERT_EQ( err, testParams.expectedError ) << "Errors don't match";
+    if ( testParams.expectedError == Json::Error::NoError ) {
+        ASSERT_EQ( parsed, true ) << "Errors don't match";
+    }
 
-    if ( err != Json::Error::NoError ) {
-        ::close(mockFds[0]);
-        ::close(devNull);
+    if ( !parsed ) {
+        ASSERT_EQ( parser.error(), testParams.expectedError ) << "Errors don't match";
+        ::close( mockFds[ 0 ] );
+        ::close( devNull );
         return;
     }
+
 
     std::size_t index = 0;
     for ( const auto &event : parser ) {

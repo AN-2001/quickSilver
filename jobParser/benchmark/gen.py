@@ -6,8 +6,8 @@ def random_label(length=8):
     return "".join(random.choices(string.ascii_lowercase, k=length))
 
 def generate_graph():
-    num_vertices = random.randint(1000, 4000)
-    num_edges = random.randint(1000, 4000)
+    num_vertices = random.randint(100, 1000)
+    num_edges = random.randint(100, 1000)
 
     edges = set()
 

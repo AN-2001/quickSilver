@@ -3,8 +3,8 @@
 #include "jobParser/errors.h"
 #include "lexer.h"
 #include <array>
+#include <cassert>
 #include <cstdint>
-#include <expected>
 #include <string_view>
 #include <utility>
 #include "parserEvents.h"
@@ -16,27 +16,25 @@
 namespace Json {
     class Parser {
         private:
-        static constexpr std::size_t NUM_EVENTS_PER_TYPE = 4096;
+        static constexpr std::size_t NUM_EVENTS_PER_TYPE = 1024 * 8;
         static constexpr std::size_t NUM_EVENTS = std::to_underlying( ParserEventType::NumEvents );
 
         std::array< std::array< ParserEvent, NUM_EVENTS_PER_TYPE>,
                     NUM_EVENTS > m_eventQueue;
         std::array< std::size_t, NUM_EVENTS > m_eventCounts{};
 
-        Json::Error addEvent( const ParserEvent &event ) noexcept
+        Json::Error m_error{ Json::Error::NoError };
+
+        void addEvent( const ParserEvent &event ) noexcept
         {
             uint16_t index = std::to_underlying( event.m_type );
             std::size_t &count = m_eventCounts[ index ];
-            if ( count == NUM_EVENTS_PER_TYPE )
-                return Json::Error::TooManyEvents;
+            assert( count < NUM_EVENTS_PER_TYPE );
             m_eventQueue[ index ][ count++ ] = event;
-            return Json::Error::NoError;
         }
 
-        [[nodiscard]] std::expected< uint16_t, Json::Error > addString( std::string_view view ) noexcept 
+        [[nodiscard]] uint16_t addString( std::string_view view ) noexcept 
         {
-            if ( m_stringTable.size() == NUM_EVENTS_PER_TYPE )
-                return std::unexpected<Json::Error>( Json::Error::TooManyStrings );
             m_stringTable.bump( Utils::makeFixedString( view ) );
             return static_cast< uint16_t >( m_stringTable.size() - 1 );
         }
@@ -45,23 +43,19 @@ namespace Json {
         Utils::BumpArray< Utils::FixedString > m_stringTable;
         Utils::Allocator &m_allocator;
 
-        [[nodiscard]] inline Json::Error expect( Json::Token token ) noexcept {
+        [[nodiscard]] inline bool expect( Json::Token token ) noexcept {
             auto tok = m_lexer.get();
-            if ( !tok )
-                return tok.error();
-            if ( *tok != token )
-                return Json::Error::UnexpectedToken;
-            return Json::Error::NoError;
+            return tok.m_type == token;
         }
 
-        [[nodiscard]] Json::Error parseJob() noexcept;
-        [[nodiscard]] Json::Error parseJobType() noexcept;
-        [[nodiscard]] Json::Error parseAlgorithm() noexcept;
-        [[nodiscard]] Json::Error parseGraph() noexcept;
-        [[nodiscard]] Json::Error parseGraphNumVertices() noexcept;
-        [[nodiscard]] Json::Error parseGraphEdges() noexcept;
-        [[nodiscard]] Json::Error parseGraphLabels() noexcept;
-        [[nodiscard]] Json::Error parseInput() noexcept;
+        [[nodiscard]] bool parseJob() noexcept;
+        [[nodiscard]] bool parseJobType() noexcept;
+        [[nodiscard]] bool parseAlgorithm() noexcept;
+        [[nodiscard]] bool parseGraph() noexcept;
+        [[nodiscard]] bool parseGraphNumVertices() noexcept;
+        [[nodiscard]] bool parseGraphEdges() noexcept;
+        [[nodiscard]] bool parseGraphLabels() noexcept;
+        [[nodiscard]] bool parseInput() noexcept;
 
         class Iterator {
             Parser *m_parser;
@@ -102,7 +96,13 @@ namespace Json {
         
         public:
 
-        [[nodiscard]] Json::Error parse() noexcept;
+        [[nodiscard]] bool parse() noexcept;
+
+        [[nodiscard]] Json::Error error() const noexcept {
+            if ( auto err = m_lexer.error(); err != Json::Error::NoError )
+                return err;
+            return m_error;
+        }
 
         Parser( Lexer &lexer, Utils::Allocator &allocator )
             : m_lexer( lexer ),

@@ -23,17 +23,18 @@ namespace Utils {
             inner[ curr++ ] = std::pair{ key, val };
         }
 
+        [[nodiscard]] constexpr bool find( const Key &key, Value &val ) const {
+            std::size_t i;
+            for ( i = 0; i < curr && inner[ i ].first != key; ++i );
+            if ( i == curr ) { return false; }
+            val = inner[ i ].second;
+            return true;
+        }
+
         [[nodiscard]] constexpr Value get( const Key &key ) const {
             std::size_t i;
             for ( i = 0; i < curr && inner[ i ].first != key; ++i );
-            if ( i == curr ) throw std::range_error( "Key does not exist" );
             return inner[ i ].second;
-        }
-
-        [[nodiscard]] constexpr bool exists( const Key &key ) const {
-            std::size_t i;
-            for ( i = 0; i < curr && inner[ i ].first != key; ++i );
-            return i < curr;
         }
 
     };
