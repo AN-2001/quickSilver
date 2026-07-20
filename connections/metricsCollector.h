@@ -103,7 +103,6 @@ namespace Connections {
         LatencyCollector<> schedCollector{};
         LatencyCollector<> totalCollector{};
         LatencyCollector<> parseCollector{};
-        LatencyCollector<> validateCollector{};
         LatencyCollector<> buildCollector{};
         LatencyCollector<> algoCollector{};
 
@@ -142,9 +141,6 @@ namespace Connections {
                             parseCollector.serialize( serializer, "parse"sv );
                             serializer << ",";
 
-                            validateCollector.serialize( serializer, "validate"sv );
-                            serializer << ",";
-
                             buildCollector.serialize( serializer, "build"sv );
                             serializer << ",";
 
@@ -165,9 +161,6 @@ namespace Connections {
                             break;
                         case MetricsEventType::PostJobParseLatency:
                             parseCollector.addLatency( event.duration );
-                            break;
-                        case MetricsEventType::PostJobValidateLatency:
-                            validateCollector.addLatency( event.duration );
                             break;
                         case MetricsEventType::PostJobBuildLatency:
                             buildCollector.addLatency( event.duration );

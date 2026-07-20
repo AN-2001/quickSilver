@@ -12,90 +12,85 @@
 namespace JobTools {
 
     template <typename T>
-    class Builder {
-        private:
-            T &m_container;
-            Utils::Allocator &m_allocator;
+        class Builder {
+            private:
+                T &m_container;
+                Utils::Allocator &m_allocator;
 
-            struct JobAuxState {
-                std::size_t currentInput;
-                std::size_t currentLabel;
-                std::size_t currentEdge;
-                std::size_t currentSrcVertex;
-            };
+                struct JobAuxState {
+                    std::size_t currentInput;
+                    std::size_t currentLabel;
+                    std::size_t currentEdge;
+                    std::size_t currentSrcVertex;
+                };
 
-        public:
-            Builder( T &container,
-                     Utils::Allocator &allocator ) 
-                : m_container( container ),
-                  m_allocator( allocator )
-            {}
+                Utils::JobState &m_job;
+                JobAuxState m_aux{};
 
-            void processEvent( Utils::JobState &job, JobAuxState &aux, const Json::ParserEvent &event ) const noexcept
-            {
-                switch( event.m_type ) {
-                    case Json::ParserEventType::SetJobType:
-                        if ( event.m_ident0 == std::to_underlying( Json::Token::Compute ) )
-                            job.type = Utils::JobType::Compute;
-                        else
-                            job.type = Utils::JobType::Metrics;
-                        break;
-                    case Json::ParserEventType::SetAlgorithm:
-                        if ( event.m_ident0 == std::to_underlying( Json::Token::Bfs ) )
-                            job.algorithm = Utils::AlgorithmType::BFS;
-                        else if ( event.m_ident0 == std::to_underlying( Json::Token::Dfs ) )
-                            job.algorithm = Utils::AlgorithmType::DFS;
-                        break;
-                    case Json::ParserEventType::SetInputCount:
-                        job.numInputs = event.m_ident0;
-                        break;
-                    case Json::ParserEventType::AddInput:
-                        job.inputs[ aux.currentInput++ ] = event.m_ident0;
-                        break;
-                    case Json::ParserEventType::SetVertexCount:
-                        job.graph.numVertices = event.m_ident0;
-                        job.graph.offsets = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 + 1 );
-                        break;
-                    case Json::ParserEventType::SetEdgeCount:
-                        job.graph.adj = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 );
-                        break;
-                    case Json::ParserEventType::AddEdge:
-                        for ( ; aux.currentSrcVertex <= event.m_ident0; ++aux.currentSrcVertex )
-                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex ) ] = static_cast<uint16_t>( aux.currentEdge );
-                        job.graph.adj[ aux.currentEdge++ ] = event.m_ident1;
-                        break;
-                    case Json::ParserEventType::SetLabelCount:
-                        job.graph.labels = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 );
-                        break;
-                    case Json::ParserEventType::AddLabel:
-                        job.graph.labels[ aux.currentLabel++ ] = event.m_ident0;
-                        break;
-                    case Json::ParserEventType::EmptyEvent:
-                    case Json::ParserEventType::NumEvents:
-                    case Json::ParserEventType::Finish:
-                        for ( ; static_cast< std::size_t > ( aux.currentSrcVertex ) <= job.graph.numVertices; ++aux.currentSrcVertex )
-                            job.graph.offsets[ static_cast< std::size_t >( aux.currentSrcVertex ) ] = static_cast<uint16_t>( aux.currentEdge );
-                        break;
+            public:
+                Builder( T &container,
+                        Utils::Allocator &allocator,
+                        Utils::JobState &job ) 
+                    : m_container( container ),
+                    m_allocator( allocator ),
+                    m_job( job )
+                {}
 
-                    default:
-                        break;
+                void build( const Json::ParserEvent &event ) noexcept
+                {
+
+                    switch( event.m_type ) {
+                        case Json::ParserEventType::SetJobType:
+                            if ( event.m_ident0 == std::to_underlying( Json::Token::Compute ) )
+                                m_job.type = Utils::JobType::Compute;
+                            else
+                                m_job.type = Utils::JobType::Metrics;
+                            break;
+                        case Json::ParserEventType::SetAlgorithm:
+                            if ( event.m_ident0 == std::to_underlying( Json::Token::Bfs ) )
+                                m_job.algorithm = Utils::AlgorithmType::BFS;
+                            else if ( event.m_ident0 == std::to_underlying( Json::Token::Dfs ) )
+                                m_job.algorithm = Utils::AlgorithmType::DFS;
+                            break;
+                        case Json::ParserEventType::SetInputCount:
+                            m_job.numInputs = event.m_ident0;
+                            break;
+                        case Json::ParserEventType::AddInput:
+                            m_job.inputs[ m_aux.currentInput++ ] = event.m_ident0;
+                            break;
+                        case Json::ParserEventType::SetVertexCount:
+                            m_job.graph.numVertices = event.m_ident0;
+                            m_job.graph.offsets = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 + 1 );
+                            break;
+                        case Json::ParserEventType::SetEdgeCount:
+                            m_job.graph.adj = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 );
+                            break;
+                        case Json::ParserEventType::AddEdge:
+                            for ( ; m_aux.currentSrcVertex <= event.m_ident0; ++m_aux.currentSrcVertex )
+                                m_job.graph.offsets[ static_cast< std::size_t >( m_aux.currentSrcVertex ) ] = static_cast<uint16_t>( m_aux.currentEdge );
+                            m_job.graph.adj[ m_aux.currentEdge++ ] = event.m_ident1;
+                            break;
+                        case Json::ParserEventType::SetLabelCount:
+                            m_job.graph.labels = Utils::makeArrayView<std::uint16_t>( m_allocator, event.m_ident0 );
+                            break;
+                        case Json::ParserEventType::AddLabel:
+                            m_job.graph.labels[ m_aux.currentLabel++ ] = event.m_ident0;
+                            break;
+                        case Json::ParserEventType::EmptyEvent:
+                        case Json::ParserEventType::NumEvents:
+                        case Json::ParserEventType::Finish:
+                            if ( m_job.type == Utils::JobType::Metrics )
+                                break;
+
+                            for ( ; static_cast< std::size_t > ( m_aux.currentSrcVertex ) <= m_job.graph.numVertices; ++m_aux.currentSrcVertex )
+                                m_job.graph.offsets[ static_cast< std::size_t >( m_aux.currentSrcVertex ) ] = static_cast<uint16_t>( m_aux.currentEdge );
+                            m_job.strings = m_container.releaseStrings();
+                            break;
+
+                        default:
+                            break;
+                    }
                 }
-
-            }
-
-            [[nodiscard]] Utils::JobState build() const noexcept
-            {
-                Utils::JobState ret{};
-                JobAuxState aux{};
-                for ( const auto &event : m_container ) {
-                    processEvent( ret, aux, event );
-                    if ( event.m_type == Json::ParserEventType::SetJobType &&
-                            event.m_ident0 == std::to_underlying( Json::Token::Metrics ) )
-                        return ret;
-                }
-                ret.strings = m_container.releaseStrings();
-                return ret;
-            }
-    };
+        };
 
 }

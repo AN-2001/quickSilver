@@ -23,9 +23,6 @@ void JobTools::JobPipeline::execute() noexcept
     JobTools::Timer jobTimer( m_eventQueue, Connections::MetricsEventType::PostJobLatency );
     Json::Lexer lexer( m_job );
     Json::Parser parser( lexer, m_allocator );
-    JobTools::Validator validator( parser );
-    JobTools::Builder builder( parser, m_allocator );
-
 
     {
         JobTools::Timer parseTimer( m_eventQueue, Connections::MetricsEventType::PostJobParseLatency );
@@ -39,17 +36,17 @@ void JobTools::JobPipeline::execute() noexcept
     }
 
     {
-        JobTools::Timer validateTimer( m_eventQueue, Connections::MetricsEventType::PostJobValidateLatency );
-        if ( !validator.validate() ) {
-            Utils::Serializer serializer( m_job );
-            serializer << R"JSON({"status":"Job error","error":"Invalid job format"})JSON";
-            return;
-        }
-    }
-
-    {
         JobTools::Timer buildTimer( m_eventQueue, Connections::MetricsEventType::PostJobBuildLatency );
-        m_job.m_jobState = builder.build();
+        JobTools::Validator validator{ parser };
+        JobTools::Builder builder{ parser, m_allocator, m_job.m_jobState };
+        for ( const auto &e : parser ) {
+            if ( !validator.validate( e ) ) {
+                Utils::Serializer serializer( m_job );
+                serializer << R"JSON({"status":"Job error","error":"Invalid job format"})JSON";
+                return;
+            }
+            builder.build( e );
+        }
     }
 
     if ( m_job.m_jobState.type == Utils::JobType::Metrics ) {

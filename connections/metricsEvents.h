@@ -9,7 +9,6 @@ namespace Connections {
         SchedJobLatency,
         PostJobLatency,
         PostJobParseLatency,
-        PostJobValidateLatency,
         PostJobBuildLatency,
         PostJobAlgoLatency,
         ShutDownMetricsThread, /* Only used internally */

@@ -157,6 +157,20 @@ namespace JobTools {
                 int lastVertex;
             };
 
+            Validator::InternalState internalState{ .numStrings = m_container.getStringCount(),
+                                                    .numVertices = 0,
+                                                    .numLabels = 0,
+                                                    .numInputs = 0,
+                                                    .numEdges = 0,
+                                                    .currentInput = 0,
+                                                    .currentLabel = 0,
+                                                    .currentEdge = 0,
+                                                    .lastVertex = -1 };
+            ValidatorState currentState = ValidatorState::Init;
+            const TransitionTable *transitions = &s_computeTransitions;
+            bool m_done{};
+
+
         public:
             Validator( T &container ) 
                 : m_container( container ) 
@@ -164,7 +178,7 @@ namespace JobTools {
 
 
             [[ nodiscard ]] bool validateTransition( InternalState &state,
-                    const Json::ParserEvent &event ) const noexcept
+                                                     const Json::ParserEvent &event ) const noexcept
             {
                 switch ( event.m_type ) {
                     case Json::ParserEventType::SetJobType:
@@ -250,30 +264,24 @@ namespace JobTools {
 
             }
 
-            [[ nodiscard ]] bool validate() const noexcept
+            [[ nodiscard ]] bool validate( const Json::ParserEvent &event ) noexcept
             {
-                Validator::InternalState internalState{};
-                ValidatorState currentState = ValidatorState::Init;
-                auto *transitions = &s_computeTransitions;
 
-                internalState.numStrings = m_container.getStringCount();
-                internalState.lastVertex = -1;
+                std::size_t currentIndex = std::to_underlying( currentState );
+                std::size_t transitionIndex = std::to_underlying( event.m_type );
 
-                for ( const auto &event : m_container ) {
-                    std::size_t currentIndex = std::to_underlying( currentState );
-                    std::size_t transitionIndex = std::to_underlying( event.m_type );
+                if ( !validateTransition( internalState, event ) ) 
+                    return false;
+                if ( event.m_type == Json::ParserEventType::SetJobType &&
+                        event.m_ident0 == std::to_underlying( Json::Token::Metrics ) )
+                    transitions = &s_metricsTransitions;
 
-                    if ( !validateTransition( internalState, event ) ) 
-                        return false;
-                    if ( event.m_type == Json::ParserEventType::SetJobType &&
-                            event.m_ident0 == std::to_underlying( Json::Token::Metrics ) )
-                        transitions = &s_metricsTransitions;
+                currentState = (*transitions)[ currentIndex ][ transitionIndex ];
+                if ( currentState == ValidatorState::UnexpectedState )
+                    return false;
 
-                    currentState = (*transitions)[ currentIndex ][ transitionIndex ];
-                    if ( currentState == ValidatorState::UnexpectedState )
-                        return false;
-                }
-                return currentState == ValidatorState::Finish;
+                return true;
             }
+
     };
 }

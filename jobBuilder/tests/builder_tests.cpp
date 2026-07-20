@@ -35,12 +35,20 @@ class BuilderTest : public ::testing::TestWithParam<BuilderTestCase> {};
 TEST_P(BuilderTest, HandlesEventSequence) {
     const auto &testParams = GetParam();
 
-    JobTools::Builder builder( testParams.input, g_allocator );
+    Utils::JobState ret;
 
-    auto ret = builder.build();
+    JobTools::Builder builder( testParams.input, g_allocator, ret );
+
+    for ( const auto &e : testParams.input ) {
+        builder.build( e );
+    }
+
     const auto &expected = testParams.expected;
 
     ASSERT_EQ( ret.type, expected.type );
+    if ( ret.type == Utils::JobType::Metrics )
+        return;
+
     ASSERT_EQ( ret.algorithm, expected.algorithm );
     ASSERT_EQ( ret.numInputs, expected.numInputs );
     ASSERT_EQ( ret.inputs.size(), expected.inputs.size() );
@@ -61,8 +69,6 @@ TEST_P(BuilderTest, HandlesEventSequence) {
     ASSERT_EQ( ret.graph.labels.size(), expected.graph.labels.size() );
     for ( std::size_t i = 0; i < ret.graph.labels.size(); i++ )
         ASSERT_EQ( ret.strings[ ret.graph.labels[ i ] ].toView(), expected.strings[ expected.graph.labels[ i ] ].toView() );
-
-
 }
 
 static const BuilderTestCase BuilderTests[] = {
