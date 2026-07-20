@@ -2,6 +2,7 @@ import random
 import socket
 import threading
 import json
+import string
 
 HOST = "127.0.0.1"
 PORT = 8080
@@ -10,36 +11,35 @@ THREADS = 10
 JOBS_PER_THREAD = 10
 
 
-def random_graph():
-    n = random.randint(5, 100)
-
-    edges = set()
-
-    # Make connected
-    for i in range(1, n):
-        edges.add((random.randint(0, i - 1), i))
-
-    while len(edges) < random.randint(n, n * 3):
-        u = random.randrange(n)
-        v = random.randrange(n)
-        if u != v:
-            edges.add(tuple(sorted((u, v))))
-
-    return {
-        "numVertices": n,
-        "edges": [list(e) for e in edges],
-        "labels": [f"v{i}" for i in range(n)]
-    }
-
+def random_label(length=8):
+    return "".join(random.choices(string.ascii_lowercase, k=length))
 
 def random_job():
-    graph = random_graph()
+    num_vertices = random.randint( 1, 100 )
+    num_edges = random.randint( 1, 100 )
+
+    adjacency = [[] for _ in range(num_vertices)]
+
+    for _ in range(num_edges):
+        u = random.randrange(num_vertices)
+        v = random.randrange(num_vertices)
+
+        adjacency[u].append(v)
 
     return {
         "jobType": "compute",
         "algorithm": random.choice(["BFS", "DFS"]),
-        "graph": graph,
-        "input": [random.randrange(graph["numVertices"])]
+        "graph": {
+            "numVertices": num_vertices,
+            "edges": adjacency,
+            "labels": [
+                random_label()
+                for _ in range(num_vertices)
+            ]
+        },
+        "input": [
+            random.randrange(num_vertices)
+        ]
     }
 
 
