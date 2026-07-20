@@ -6,7 +6,19 @@
 
 namespace {
 
-    inline bool parseNumber( std::string_view sv, double &num ) 
+    inline bool parseNumberInt( std::string_view sv, int &num ) 
+    {
+        const char *begin = sv.data();
+        const char *end = sv.data() + sv.length();
+
+        auto [ ptr, ec ] = std::from_chars( begin, end, num );
+
+        if ( ec == std::errc{} )
+            return ptr == end;
+        return false;
+    }
+
+    inline bool parseNumberFloat( std::string_view sv, double &num ) 
     {
         const char *begin = sv.data();
         const char *end = sv.data() + sv.length();
@@ -83,10 +95,7 @@ Json::TokenWrapper Json::Lexer::computeNextToken() noexcept
 
         char peek = peekChar();
         while ( !isSpace(peek) ) {
-            if ( peek == '[' || peek == ']' ||
-                 peek == '{' || peek == '}' ||
-                 peek == ',' || peek == ':' ||
-                 peek == '\0' )
+            if ( charTable[ std::size_t( peek ) ] != Token::Invalid )
                 break;
 
             c = consumeChar( &populator );
@@ -104,25 +113,37 @@ Json::TokenWrapper Json::Lexer::computeNextToken() noexcept
         consumeChar( &populator );
 
         auto peek = peekChar();
+        bool isFloat = false;
 
         while ( !isSpace(peek) ) {
-            if ( peek == '[' || peek == ']' ||
-                 peek == '{' || peek == '}' ||
-                 peek == ',' || peek == ':' ||
-                 peek == '\0')
+            if ( peek == '.' || peek == 'f' || peek == 'F' || peek == 'e' || peek == 'E' )
+                isFloat = true;
+
+            if ( charTable[ std::size_t( peek ) ] != Token::Invalid )
                 break;
 
             c = consumeChar( &populator );
             peek = peekChar();
         }
 
-        double num;
-        if ( !parseNumber( populator.toView(), num ) ) {
-            m_error = Error::InvalidNumber;
-            return Token::Invalid;
+        double ret;
+
+        if ( isFloat ) {
+            double &num = ret;
+            if ( !parseNumberFloat( populator.toView(), num ) ) {
+                m_error = Error::InvalidNumber;
+                return Token::Invalid;
+            }
+        } else {
+            int num;
+            if ( !parseNumberInt( populator.toView(), num ) ) {
+                m_error = Error::InvalidNumber;
+                return Token::Invalid;
+            }
+            ret = num;
         }
 
-        return num;
+        return ret;
     }
 
     auto t = charTable[ std::size_t( c ) ];
